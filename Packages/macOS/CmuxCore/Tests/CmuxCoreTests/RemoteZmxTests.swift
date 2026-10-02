@@ -118,6 +118,32 @@ struct RemoteZmxTests {
         #expect(detached.output == "attached\n")
     }
 
+    @Test(arguments: [false, true])
+    func attachmentWorksThroughNonPOSIXLoginShell(create: Bool) throws {
+        let dir = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let executable = dir.appendingPathComponent("zmx").path
+        try writeExecutable("""
+        #!/bin/sh
+        if [ "$1" = list ]; then printf 'agent\\n'; exit 0; fi
+        shift 2
+        if [ "$#" = 0 ]; then printf 'attached\\n'; else exec "$@"; fi
+        """, path: executable)
+        let ssh = dir.appendingPathComponent("ssh").path
+        try writeExecutable("""
+        #!/bin/sh
+        for argument do remote=$argument; done
+        exec /bin/tcsh -f -c "$remote"
+        """, path: ssh)
+        let binding = try RemoteZmxBinding(endpoint: RemoteZmxEndpoint(destination: "host", executable: executable), session: "agent")
+        let command = binding.startupCommand(sshArguments: [], sshExecutable: ssh,
+            create: create, reconnectMessage: "retry", missingMessage: "missing",
+            command: "printf 'created\\n'\nprintf 'multiline α\\n'")
+        let result = try run(command, in: dir)
+        #expect(result.status == 0)
+        #expect(result.output == (create ? "created\nmultiline α\n" : "attached\n"))
+    }
+
     private func temporaryDirectory() throws -> URL {
         let url = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
