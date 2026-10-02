@@ -39,7 +39,7 @@ public struct RemoteZmxBinding: Codable, Hashable, Sendable {
     public func attachScript(create: Bool, command: String? = nil, workingDirectory: String? = nil) -> String {
         let q = RemoteZmxEndpoint.quote
         let check = """
-        if ! \(q(endpoint.executable)) get \(q(session)) >/dev/null 2>&1; then
+        if ! probe=$(\(q(endpoint.executable)) get \(q(session)) 2>/dev/null) || [ -n "$probe" ]; then
         names=$(\(q(endpoint.executable)) list --short) || exit $?;
         found=0;
         while IFS= read -r name; do
@@ -50,8 +50,9 @@ public struct RemoteZmxBinding: Codable, Hashable, Sendable {
         [ "$found" = 1 ] || exit 44;
         fi;
         """
-        // A successful read-only label probe checks only this daemon. Older zmx
-        // clients/daemons can fall back to discovery without creating a session.
+        // Empty success from a read-only label probe checks only this daemon.
+        // Older clients print help with status 0 for unknown commands; any
+        // nonempty output (including real labels) conservatively uses discovery.
         let directory = create ? workingDirectory.map { "cd -- \(q($0)) || exit $?; " } ?? "" : ""
         let argv = command.flatMap { create ? ["/bin/sh", "-lc", $0] : nil } ?? []
         let suffix = argv.isEmpty ? "" : " " + argv.map(q).joined(separator: " ")

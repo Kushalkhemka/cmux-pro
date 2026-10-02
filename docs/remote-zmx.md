@@ -39,8 +39,8 @@ caller’s workspace and uses the endpoint’s separate mapping window.
 SSH transport failures reconnect with backoff from one to fifteen seconds,
 plus a subsecond offset to spread retries across tabs after a network drop.
 A connection that lasts at least thirty seconds resets the backoff. SSH probes
-an idle connection every five seconds and disconnects after three unanswered
-probes, so a silent drop normally starts recovery in about fifteen seconds.
+an idle connection every five seconds and allows three unanswered probes
+before disconnecting and starting recovery.
 Successful detach, a shell exiting, and remote command errors stop the loop.
 The terminal remains open to show the result. A manual terminal respawn with
 no command reconnects its saved zmx session. Supplying a replacement command or
@@ -57,9 +57,9 @@ master's session limit and traffic contention. Key or SSH-agent authentication
 is best for many terminals; password and hardware-key authentication may prompt
 for each independent connection. Input and resize use the native terminal PTY
 path rather than tmux's control-mode protocol.
-Attaching an existing session first checks only its daemon using the read-only
-`zmx get` command. Clients or daemons that lack that command fall back to
-`zmx list --short`; a missing session is still not deliberately recreated.
+Attaching an existing unlabeled session first checks only its daemon using the
+read-only `zmx get` command. Labeled sessions and older clients or daemons fall
+back to `zmx list --short`; a missing session is still not deliberately recreated.
 
 ```sh
 cmux ssh-zmx dev --port 2222 --identity ~/.ssh/dev_key

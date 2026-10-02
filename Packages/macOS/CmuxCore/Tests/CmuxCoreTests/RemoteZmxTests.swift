@@ -132,7 +132,7 @@ struct RemoteZmxTests {
         #!/bin/sh
         printf '%s\\n' "$1" >> calls
         case "$1" in
-          get) [ "$2" = \(q(name)) ] || exit 1; printf 'private labels\\n';;
+          get) [ "$2" = \(q(name)) ] || exit 1;;
           list) exit 77;;
           attach) printf '%s\\n' "$2";;
         esac
@@ -145,14 +145,15 @@ struct RemoteZmxTests {
         #expect(!FileManager.default.fileExists(atPath: dir.appendingPathComponent("sentinel").path))
     }
 
-    @Test func unsupportedTargetProbeFallsBackWithoutRecreatingMissingSession() throws {
+    @Test(arguments: [0, 1])
+    func unsupportedOrLabeledTargetProbeFallsBackWithoutRecreatingMissingSession(probeStatus: Int) throws {
         let dir = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
         let executable = dir.appendingPathComponent("zmx").path
         try writeExecutable("""
         #!/bin/sh
         case "$1" in
-          get) exit 1;;
+          get) printf 'role=worker\\n'; exit \(probeStatus);;
           list) printf 'existing\\n';;
           attach) printf 'attached\\n';;
         esac
