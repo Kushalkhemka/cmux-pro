@@ -114,6 +114,53 @@ struct RemoteZmxWorkspaceTests {
         }
     }
 
+    @Test(arguments: [false, true])
+    func movedDockCallerUsesOwningWorkspaceInsteadOfStaleShellContext(globalDock: Bool) throws {
+        let previousApp = AppDelegate.shared
+        let app = previousApp ?? AppDelegate()
+        let previousManager = app.tabManager
+        let sourceManager = TabManager(autoWelcomeIfNeeded: false)
+        let sourceWindow = app.registerMainWindowContextForTesting(tabManager: sourceManager)
+        let destinationManager = TabManager(autoWelcomeIfNeeded: false)
+        let destinationWindow = app.registerMainWindowContextForTesting(tabManager: destinationManager)
+        AppDelegate.shared = app
+        app.tabManager = sourceManager
+        let destination = try #require(destinationManager.selectedWorkspace)
+        let dock = DockSplitStore(workspaceId: globalDock ? destinationWindow : destination.id,
+            scope: globalDock ? .global : .workspace, baseDirectoryProvider: { nil })
+        defer {
+            dock.closeAllPanels()
+            for manager in [sourceManager, destinationManager] {
+                for workspace in Array(manager.tabs) {
+                    workspace.remoteZmxEndpoint = nil
+                    for id in Array(workspace.panels.keys) { _ = workspace.closePanel(id, force: true) }
+                }
+            }
+            app.unregisterMainWindowContextForTesting(windowId: destinationWindow)
+            app.unregisterMainWindowContextForTesting(windowId: sourceWindow)
+            app.tabManager = previousManager
+            AppDelegate.shared = previousApp
+        }
+        let source = try #require(sourceManager.selectedWorkspace)
+        let caller = try #require(source.panels.values.first as? TerminalPanel)
+        let transfer = try #require(source.detachSurface(panelId: caller.id))
+        dock.ensureLoaded()
+        let pane = try #require(dock.bonsplitController.allPaneIds.first)
+        _ = try #require(dock.attachDetachedSurface(transfer, inPane: pane, focus: false))
+        sourceManager.closeWorkspace(source, recordHistory: false)
+        let endpoint = try RemoteZmxEndpoint(destination: "dock-caller.example.test")
+        let binding = try RemoteZmxBinding(endpoint: endpoint, session: "agent")
+        let result = try RemoteZmxController().mirrorDiscovered(endpoint: endpoint, discovered: [binding],
+            session: nil, create: false, target: .contextualWindow(sourceWindow), activate: false,
+            title: nil, workspaceID: source.id, callerSurfaceID: caller.id, preferCallerSurface: true)
+        guard case .mirrored(let mappedWindow, let mappings) = result else { Issue.record("Expected mapping"); return }
+        #expect(mappedWindow == destinationWindow)
+        #expect(mappings.count == 1)
+        #expect(mappings.allSatisfy { $0.workspaceID == destination.id })
+        #expect(dock.panels[caller.id] === caller)
+        #expect(destination.panels.count == 2)
+    }
+
     @Test func closedCallerWorkspaceDoesNotFallBackToAnotherWorkspace() throws {
         let previousApp = AppDelegate.shared
         let app = previousApp ?? AppDelegate()
