@@ -206,6 +206,7 @@ extension DockSplitStore {
 
     func dockPanelNeedsConfirmClose(_ panel: any Panel) -> Bool {
         if let terminalPanel = panel as? TerminalPanel {
+            if terminalPanel.remoteZmxBinding != nil { return false }
             return terminalPanel.needsConfirmClose()
         }
         return panel.isDirty

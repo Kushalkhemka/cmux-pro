@@ -1485,6 +1485,7 @@ struct SessionTerminalPanelSnapshot: Codable, Sendable {
     var textBoxDraft: SessionTextBoxInputDraftSnapshot?
     var isRemoteTerminal: Bool?
     var remotePTYSessionID: String?
+    var remoteZmxBinding: RemoteZmxBinding?
     /// Whether the agent process was actively running when this snapshot was captured.
     /// Nil means unknown (legacy snapshots); treated as true for backwards compatibility.
     var wasAgentRunning: Bool?
@@ -1505,7 +1506,8 @@ struct SessionTerminalPanelSnapshot: Codable, Sendable {
         isRemoteTerminal: Bool? = nil,
         remotePTYSessionID: String? = nil,
         wasAgentRunning: Bool? = nil,
-        hasReceivedExplicitInput: Bool? = nil
+        hasReceivedExplicitInput: Bool? = nil,
+        remoteZmxBinding: RemoteZmxBinding? = nil
     ) {
         self.workingDirectory = workingDirectory
         self.fontSize = fontSize
@@ -1519,6 +1521,7 @@ struct SessionTerminalPanelSnapshot: Codable, Sendable {
         self.textBoxDraft = textBoxDraft
         self.isRemoteTerminal = isRemoteTerminal
         self.remotePTYSessionID = remotePTYSessionID
+        self.remoteZmxBinding = remoteZmxBinding
         self.wasAgentRunning = wasAgentRunning
         self.hasReceivedExplicitInput = hasReceivedExplicitInput
     }
@@ -1768,6 +1771,7 @@ struct SessionWorkspaceSnapshot: Codable, Sendable {
     var progress: SessionProgressSnapshot?
     var gitBranch: SessionGitBranchSnapshot?
     var remote: SessionRemoteWorkspaceSnapshot?
+    var remoteZmxEndpoint: RemoteZmxEndpoint? = nil
     /// cmux-tui cloud machine binding; absent in manifests written before the Cloud tree and for
     /// workspaces that are not cloud machines.
     var cloudVM: SessionCloudVMBindingSnapshot? = nil

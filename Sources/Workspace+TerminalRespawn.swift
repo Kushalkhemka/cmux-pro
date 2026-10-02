@@ -36,14 +36,18 @@ extension Workspace {
             return nil
         }
 
-        let trimmedCommand = command?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let zmxBinding = command == nil ? oldPanel.remoteZmxBinding : nil
+        let trimmedCommand = zmxBinding.map { RemoteZmxLaunch.command($0) }
+            ?? command?.trimmingCharacters(in: .whitespacesAndNewlines)
         if command != nil, trimmedCommand?.isEmpty != false { return nil }
 
         var inheritedConfig = inheritedTerminalConfig(preferredPanelId: panelId, inPane: paneId)
         var respawnConfig = inheritedConfig ?? CmuxSurfaceConfigTemplate()
         respawnConfig.waitAfterCommand = waitAfterCommand ?? oldPanel.surface.debugWaitAfterCommand()
         inheritedConfig = respawnConfig
-        let requestedWorkingDirectory = resolvedTerminalStartupWorkingDirectory(
+        let requestedWorkingDirectory = oldPanel.remoteZmxBinding != nil
+            ? FileManager.default.homeDirectoryForCurrentUser.path
+            : resolvedTerminalStartupWorkingDirectory(
             requestedWorkingDirectory: workingDirectory,
             sourcePanelId: panelId
         )
@@ -125,6 +129,7 @@ extension Workspace {
                 isRemoteTerminal: oldPanel.surface.isRemoteTerminal
             )
         }
+        replacementPanel.remoteZmxBinding = zmxBinding
         replacementPanel.adoptOwnedSessionScrollbackReplayArtifact(effectiveReplayFileURL)
         // Respawn replaces the panel object but keeps the logical tab identity.
         replacementPanel.adoptStableSurfaceId(oldPanel.stableSurfaceId)

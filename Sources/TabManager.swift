@@ -3569,6 +3569,11 @@ class TabManager: ObservableObject {
         keepSurfaceVisible: Bool = false
     ) {
         guard let tab = tabs.first(where: { $0.id == tabId }) else { return }
+        let zmxTerminal = (tab.panels[surfaceId] ?? tab._dockSplit?.panels[surfaceId]) as? TerminalPanel
+        if let zmxTerminal, zmxTerminal.remoteZmxBinding != nil {
+            if let runtimeSurface, zmxTerminal.surface !== runtimeSurface { return }
+            return
+        }
         if tab.panels[surfaceId] == nil {
             tab.closeDockPanelAndClearNotifications(
                 surfaceId,

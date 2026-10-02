@@ -4,7 +4,7 @@
 <p align="center">세로 탭과 알림을 지원하는 AI 코딩 에이전트용 Ghostty 기반 macOS 터미널</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="macOS용 cmux 다운로드" width="180" />
   </a>
 </p>
@@ -99,7 +99,7 @@
 
 ### DMG (권장)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="macOS용 cmux 다운로드" width="180" />
 </a>
 

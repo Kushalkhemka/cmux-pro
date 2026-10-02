@@ -4,7 +4,7 @@
 <p align="center">Un terminal macOS basado en Ghostty con pestañas verticales y notificaciones para agentes de programación con IA</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="Descargar cmux para macOS" width="180" />
   </a>
 </p>
@@ -99,7 +99,7 @@ La barra lateral muestra la rama de git, el estado/número del PR vinculado, el 
 
 ### DMG (recomendado)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="Descargar cmux para macOS" width="180" />
 </a>
 

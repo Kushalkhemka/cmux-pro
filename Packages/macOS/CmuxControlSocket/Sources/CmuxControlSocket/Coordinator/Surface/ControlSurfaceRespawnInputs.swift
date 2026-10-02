@@ -12,6 +12,8 @@ public struct ControlSurfaceRespawnInputs: Sendable, Equatable {
     /// The resume/respawn command (with the legacy
     /// `exec ${SHELL:-/bin/zsh} -l` default already applied).
     public let command: String
+    /// Whether the caller supplied a command rather than accepting the shell default.
+    public let hasExplicitCommand: Bool
     /// The tmux start command (defaults to `command`).
     public let tmuxStartCommand: String
     /// The trimmed-non-empty working directory, or `nil`.
@@ -36,9 +38,11 @@ public struct ControlSurfaceRespawnInputs: Sendable, Equatable {
         hasSurfaceIDParam: Bool,
         requestedSurfaceID: UUID?,
         hasFocusParam: Bool,
-        requestedFocus: Bool
+        requestedFocus: Bool,
+        hasExplicitCommand: Bool = true
     ) {
         self.command = command
+        self.hasExplicitCommand = hasExplicitCommand
         self.tmuxStartCommand = tmuxStartCommand
         self.workingDirectory = workingDirectory
         self.hasSurfaceIDParam = hasSurfaceIDParam

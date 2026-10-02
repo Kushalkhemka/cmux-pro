@@ -4,7 +4,7 @@
 <p align="center">Терминал macOS на базе Ghostty с вертикальными вкладками и уведомлениями для AI-агентов программирования</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="Скачать cmux для macOS" width="180" />
   </a>
 </p>
@@ -99,7 +99,7 @@
 
 ### DMG (рекомендуется)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="Скачать cmux для macOS" width="180" />
 </a>
 

@@ -7,6 +7,15 @@ struct RemoteCLIRelayPolicyTests {
     private let tokenHex = "00112233445566778899aabbccddeeff"
     private let relayID = "relay-policy"
 
+    @Test("zmx discovery and attachment remain local-only", arguments: [
+        "remote.zmx.sessions", "remote.zmx.mirror", "remote.zmx.window"
+    ])
+    func deniesRemoteZmx(method: String) throws {
+        let request = try JSONSerialization.data(withJSONObject: ["method": method, "params": ["host": "dev"]])
+        let verdict = RemoteRelayCommandPolicy().evaluate(commandLine: request, workspaceAliases: [:], surfaceAliases: [:])
+        guard case .deny = verdict else { Issue.record("zmx requests must not pass through a remote relay"); return }
+    }
+
     @Test("core discovery uses canonical RPC names and the authenticated relay", arguments: [
         "system.ping", "system.capabilities", "workspace.list"
     ])

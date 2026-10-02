@@ -4,7 +4,7 @@
 <p align="center">Terminal សម្រាប់ macOS ផ្អែកលើ Ghostty ដែលមាន tab បញ្ឈរ និងការជូនដំណឹងសម្រាប់ AI coding agents</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="Download cmux for macOS" width="180" />
   </a>
 </p>
@@ -99,7 +99,7 @@
 
 ### DMG (បានណែនាំ)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="Download cmux for macOS" width="180" />
 </a>
 

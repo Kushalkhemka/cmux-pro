@@ -61,7 +61,8 @@ for arch in $ARCHS; do
   fi
 done
 
-DEBUG_INFO="$(dwarfdump --debug-info "$BINARY" 2>&1)"
+# Use Apple's toolchain when Homebrew dwarfutils shadows dwarfdump on PATH.
+DEBUG_INFO="$(xcrun dwarfdump --debug-info "$BINARY" 2>&1)"
 if [[ "$DEBUG_INFO" == *"DW_TAG_"* ]]; then
   echo "error: diff sidecar retains embedded DWARF debug information" >&2
   exit 1

@@ -4,7 +4,7 @@
 <p align="center">基于 Ghostty 的 macOS 终端，带有垂直标签页和为 AI 编程代理设计的通知系统</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="下载 cmux macOS 版" width="180" />
   </a>
 </p>
@@ -99,7 +99,7 @@
 
 ### DMG（推荐）
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="下载 cmux macOS 版" width="180" />
 </a>
 

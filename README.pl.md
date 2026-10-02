@@ -4,7 +4,7 @@
 <p align="center">Terminal macOS oparty na Ghostty z pionowymi kartami i powiadomieniami dla agentów kodowania AI</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="Pobierz cmux dla macOS" width="180" />
   </a>
 </p>
@@ -99,7 +99,7 @@ Pasek boczny pokazuje gałąź git, status/numer powiązanego PR, katalog robocz
 
 ### DMG (zalecane)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="Pobierz cmux dla macOS" width="180" />
 </a>
 

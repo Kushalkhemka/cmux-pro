@@ -296,6 +296,21 @@ extension TerminalController {
             return .surfaceNotFoundForID(surfaceId)
         }
 
+        if ws.terminalPanel(for: surfaceId)?.remoteZmxBinding != nil {
+            // A saved zmx mapping respawns its SSH client, never a new local command.
+            guard !inputs.hasExplicitCommand, inputs.workingDirectory == nil else {
+                return .respawnFailed(surfaceId)
+            }
+            v2MaybeFocusWindow(for: tabManager)
+            v2MaybeSelectWorkspace(tabManager, workspace: ws)
+            let focus: Bool? = inputs.hasFocusParam ? v2FocusAllowed(requested: inputs.requestedFocus) : nil
+            guard let replacement = ws.reattachZmxPanel(panelID: surfaceId, focus: focus) else {
+                return .respawnFailed(surfaceId)
+            }
+            return .respawned(windowID: v2ResolveWindowId(tabManager: tabManager),
+                workspaceID: ws.id, surfaceID: surfaceId, typeRawValue: replacement.panelType.rawValue)
+        }
+
         let remoteRespawnRouting = ws.remotePTYRespawnRouting(panelId: surfaceId)
         let isNativeSSH = ws.machineOwningSurface(surfaceId)?.isSSH == true
         if remoteRespawnRouting == .unsupportedRemote, !isNativeSSH {

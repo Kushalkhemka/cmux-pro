@@ -102,12 +102,13 @@ enum SessionSnapshotImportTrust {
             var window = sanitized.windows[windowIndex]
             for workspaceIndex in window.tabManager.workspaces.indices {
                 var workspace = window.tabManager.workspaces[workspaceIndex]
-                if workspace.remote != nil || workspace.cloudVM != nil
+                if workspace.remote != nil || workspace.cloudVM != nil || workspace.remoteZmxEndpoint != nil
                     || workspace.environment?.isEmpty == false
                     || workspace.surfaceProjections?.isEmpty == false
                     || workspace.cloudMachineTeams?.isEmpty == false {
                     report.droppedRemoteWorkspaceCount += 1
                 }
+                workspace.remoteZmxEndpoint = nil
                 workspace.remote = nil
                 workspace.cloudVM = nil
                 workspace.environment = nil
@@ -148,7 +149,8 @@ enum SessionSnapshotImportTrust {
             if changed { report.sanitizedBrowserPanelCount += 1 }
         }
         guard var terminal = panel.terminal else { return panel }
-        var heldBack = false
+        var heldBack = terminal.remoteZmxBinding != nil
+        terminal.remoteZmxBinding = nil
 
         var rebuiltAgent: SessionRestorableAgentSnapshot?
         if let agent = terminal.agent {

@@ -127,12 +127,24 @@ extension AppDelegate {
     /// the remote-tmux socket verbs) refuse anything new while the policy is
     /// forced, and read the resolver live once it lifts.
     func endRemoteConnectionsForManagedPolicy() {
+        remoteZmxController.detachAll()
         for manager in allTabManagersForManagedPolicyEnforcement() {
             for workspace in manager.tabs where workspace.isRemoteWorkspace {
                 workspace.disconnectRemoteConnection(
                     clearConfiguration: true,
                     disconnectedDetail: ManagedRemoteConnectionsPolicy.disabledMessage
                 )
+            }
+        }
+        for workspace in surfaceCatalogWorkspaces() {
+            workspace.remoteZmxEndpoint = nil
+            for panel in Array(workspace.panels.values) where (panel as? TerminalPanel)?.remoteZmxBinding != nil {
+                _ = workspace.closePanel(panel.id, force: true)
+            }
+        }
+        for dock in DockSplitStore.liveStores {
+            for panel in Array(dock.panels.values) where (panel as? TerminalPanel)?.remoteZmxBinding != nil {
+                _ = dock.closePanel(panel.id, force: true)
             }
         }
         remoteTmuxController.detachAllForManagedPolicy()

@@ -614867,6 +614867,301 @@
           }
         }
       }
+    },
+    "cli.help.ssh-zmx": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Map remote zmx sessions to native tabs. Tabs and splits create independent sessions; closing detaches. Layout and session mappings survive relaunch. SSH interruptions reconnect automatically. Repeat the command to discover additional sessions. --create requires --session. --list discovers without opening terminals."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يربط جلسات zmx البعيدة بعلامات تبويب أصلية. تُنشئ علامات التبويب والتقسيمات جلسات مستقلة؛ ويؤدي الإغلاق إلى فصل الاتصال. يبقى التخطيط وربط الجلسات بعد إعادة التشغيل. يُعاد الاتصال تلقائيًا بعد انقطاع SSH. كرّر الأمر لاكتشاف جلسات إضافية. يتطلب --create الخيار --session. يكتشف --list الجلسات دون فتح أطراف طرفية."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ordnet entfernte zmx-Sitzungen nativen Tabs zu. Tabs und geteilte Ansichten erstellen unabhängige Sitzungen; beim Schließen wird die Verbindung getrennt. Layout und Sitzungszuordnungen bleiben nach einem Neustart erhalten. Nach SSH-Unterbrechungen wird automatisch eine neue Verbindung hergestellt. Wiederholen Sie den Befehl, um weitere Sitzungen zu finden. --create erfordert --session. --list findet Sitzungen, ohne Terminals zu öffnen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Asocia las sesiones remotas de zmx con pestañas nativas. Las pestañas y divisiones crean sesiones independientes; al cerrar se desconectan. La disposición y las asociaciones se conservan al reiniciar. Las interrupciones de SSH se reconectan automáticamente. Repite el comando para descubrir más sesiones. --create requiere --session. --list descubre sesiones sin abrir terminales."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Associe les sessions zmx distantes à des onglets natifs. Les onglets et divisions créent des sessions indépendantes ; la fermeture détache la session. La disposition et les associations sont conservées au redémarrage. Les interruptions SSH déclenchent une reconnexion automatique. Répétez la commande pour découvrir d’autres sessions. --create nécessite --session. --list découvre les sessions sans ouvrir de terminaux."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "リモートの zmx セッションをネイティブのタブに割り当てます。タブと分割は独立したセッションを作成し、閉じると切り離します。再起動後もレイアウトとセッションの対応を保持します。SSH が中断すると自動的に再接続します。追加のセッションを検出するにはコマンドを再実行してください。--create には --session が必要です。--list はターミナルを開かずにセッションを検出します。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "원격 zmx 세션을 기본 탭에 연결합니다. 탭과 분할 창은 독립적인 세션을 만들며, 닫으면 연결이 해제됩니다. 다시 실행해도 레이아웃과 세션 연결이 유지됩니다. SSH가 끊어지면 자동으로 다시 연결합니다. 추가 세션을 검색하려면 명령을 다시 실행하세요. --create에는 --session이 필요합니다. --list는 터미널을 열지 않고 세션을 검색합니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "将远程 zmx 会话映射到原生标签页。标签页和分栏会创建独立会话；关闭时会分离。重新启动后会保留布局和会话映射。SSH 中断后会自动重新连接。重复运行命令可发现更多会话。--create 需要 --session。--list 会发现会话而不打开终端。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "將遠端 zmx 工作階段對應至原生分頁。分頁和分割窗格會建立獨立的工作階段；關閉時會卸離。重新啟動後仍會保留配置和工作階段對應。SSH 中斷後會自動重新連線。重複執行命令以探索其他工作階段。--create 需要 --session。--list 會探索工作階段而不開啟終端機。"
+          }
+        }
+      }
+    },
+    "cli.sshZmx.invalidArguments": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invalid arguments. Run cmux ssh-zmx --help for usage."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "وسائط غير صالحة. شغّل cmux ssh-zmx --help لعرض طريقة الاستخدام."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ungültige Argumente. Hinweise zur Verwendung erhalten Sie mit cmux ssh-zmx --help."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Argumentos no válidos. Ejecuta cmux ssh-zmx --help para ver cómo usarlo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Arguments non valides. Exécutez cmux ssh-zmx --help pour afficher l’aide."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引数が無効です。使い方を確認するには cmux ssh-zmx --help を実行してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "인수가 올바르지 않습니다. 사용법은 cmux ssh-zmx --help를 실행하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "参数无效。请运行 cmux ssh-zmx --help 查看用法。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "引數無效。請執行 cmux ssh-zmx --help 查看用法。"
+          }
+        }
+      }
+    },
+    "remoteZmx.reconnecting": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH disconnected. Reconnecting to the zmx session…"
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انقطع اتصال SSH. جارٍ إعادة الاتصال بجلسة zmx…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH wurde getrennt. Die Verbindung zur zmx-Sitzung wird wiederhergestellt…"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH se ha desconectado. Reconectando a la sesión de zmx…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH déconnecté. Reconnexion à la session zmx…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH が切断されました。zmx セッションに再接続しています…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 연결이 끊어졌습니다. zmx 세션에 다시 연결하는 중…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 已断开。正在重新连接 zmx 会话…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SSH 已中斷連線。正在重新連線至 zmx 工作階段…"
+          }
+        }
+      }
+    },
+    "remoteZmx.sessionMissing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The zmx session no longer exists. Refresh the host to discover its current sessions."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم تعد جلسة zmx موجودة. حدّث المضيف لاكتشاف جلساته الحالية."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Die zmx-Sitzung existiert nicht mehr. Aktualisieren Sie den Host, um seine aktuellen Sitzungen zu finden."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La sesión de zmx ya no existe. Actualiza el host para descubrir sus sesiones actuales."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La session zmx n’existe plus. Actualisez l’hôte pour découvrir ses sessions actuelles."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zmx セッションは存在しなくなりました。ホストを更新して現在のセッションを検出してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zmx 세션이 더 이상 존재하지 않습니다. 호스트를 새로 고쳐 현재 세션을 검색하세요."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zmx 会话已不存在。请刷新主机以发现当前会话。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zmx 工作階段已不存在。請重新整理主機以探索目前的工作階段。"
+          }
+        }
+      }
+    },
+    "remoteZmx.invalidParams": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invalid zmx connection or session."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اتصال أو جلسة zmx غير صالحة."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ungültige zmx-Verbindung oder Sitzung."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Conexión o sesión de zmx no válida."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connexion ou session zmx non valide."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zmx の接続またはセッションが無効です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zmx 연결 또는 세션이 올바르지 않습니다."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zmx 连接或会话无效。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "zmx 連線或工作階段無效。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

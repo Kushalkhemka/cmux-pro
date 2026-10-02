@@ -9,6 +9,8 @@ NAME_SET=0
 BUNDLE_SET=0
 DERIVED_SET=0
 TAG=""
+AD_HOC=0
+BUILD_ONLY=0
 # Matches CmuxStateDirectory (non-TCC ~/.local/state/cmux) where the app/CLI now
 # read the last-socket-path markers (https://github.com/manaflow-ai/cmux/issues/5146).
 # Resolve the real account home via getpwuid (the same syscall
@@ -55,6 +57,9 @@ Options:
   --name <app name>      Override app display/bundle name.
   --bundle-id <id>       Override bundle identifier.
   --derived-data <path>  Override derived data path.
+  --build-only          Build and stage a tagged app without launching or touching sockets.
+  --ad-hoc              Sign a tagged build locally without a developer certificate.
+                         Builds only this Mac's architecture and omits restricted entitlements.
   -h, --help             Show this help.
 EOF
 }
@@ -86,6 +91,10 @@ while [[ $# -gt 0 ]]; do
       fi
       shift 2
       ;;
+    --build-only)
+      BUILD_ONLY=1
+      shift
+      ;;
     --name)
       APP_NAME="${2:-}"
       if [[ -z "$APP_NAME" ]]; then
@@ -113,6 +122,10 @@ while [[ $# -gt 0 ]]; do
       DERIVED_SET=1
       shift 2
       ;;
+    --ad-hoc)
+      AD_HOC=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -124,6 +137,11 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ "$AD_HOC" -eq 1 && -z "$TAG" ]]; then
+  echo "error: --ad-hoc requires --tag for an isolated local build" >&2
+  exit 1
+fi
 
 if [[ -n "$TAG" ]]; then
   TAG_ID="$(sanitize_bundle "$TAG")"
@@ -143,6 +161,11 @@ if [[ -n "$TAG" ]]; then
   fi
 fi
 
+if [[ "$BUILD_ONLY" -eq 1 && -z "$TAG" ]]; then
+  echo "error: --build-only requires --tag" >&2
+  exit 1
+fi
+
 XCODEBUILD_ARGS=(
   -project cmux.xcodeproj
   -scheme cmux
@@ -151,6 +174,15 @@ XCODEBUILD_ARGS=(
 )
 if [[ -n "$DERIVED_DATA" ]]; then
   XCODEBUILD_ARGS+=(-derivedDataPath "$DERIVED_DATA")
+fi
+if [[ "$AD_HOC" -eq 1 ]]; then
+  XCODEBUILD_ARGS+=(
+    CODE_SIGN_IDENTITY=-
+    CODE_SIGN_ENTITLEMENTS=
+    DEVELOPMENT_TEAM=
+    CODE_SIGN_STYLE=Manual
+    ONLY_ACTIVE_ARCH=YES
+  )
 fi
 if [[ -z "$TAG" ]]; then
   XCODEBUILD_ARGS+=(
@@ -229,7 +261,7 @@ if [[ -f "$INFO_PLIST" ]]; then
     CMUXD_SOCKET="${APP_SUPPORT_DIR}/cmuxd-staging.sock"
     CMUX_SOCKET_PATH_VALUE="/tmp/cmux-staging.sock"
   fi
-  write_last_socket_path "$CMUX_SOCKET_PATH_VALUE"
+  if [[ "$BUILD_ONLY" -ne 1 ]]; then write_last_socket_path "$CMUX_SOCKET_PATH_VALUE"; fi
   /usr/libexec/PlistBuddy -c "Add :LSEnvironment dict" "$INFO_PLIST" 2>/dev/null || true
   /usr/libexec/PlistBuddy -c "Set :LSEnvironment:CMUX_BUNDLE_ID \"${BUNDLE_ID}\"" "$INFO_PLIST" 2>/dev/null \
     || /usr/libexec/PlistBuddy -c "Add :LSEnvironment:CMUX_BUNDLE_ID string \"${BUNDLE_ID}\"" "$INFO_PLIST"
@@ -237,18 +269,22 @@ if [[ -f "$INFO_PLIST" ]]; then
     || /usr/libexec/PlistBuddy -c "Add :LSEnvironment:CMUXD_UNIX_PATH string \"${CMUXD_SOCKET}\"" "$INFO_PLIST"
   /usr/libexec/PlistBuddy -c "Set :LSEnvironment:CMUX_SOCKET_PATH \"${CMUX_SOCKET_PATH_VALUE}\"" "$INFO_PLIST" 2>/dev/null \
     || /usr/libexec/PlistBuddy -c "Add :LSEnvironment:CMUX_SOCKET_PATH string \"${CMUX_SOCKET_PATH_VALUE}\"" "$INFO_PLIST"
-  if [[ -S "$CMUXD_SOCKET" ]]; then
+  if [[ "$BUILD_ONLY" -ne 1 && -S "$CMUXD_SOCKET" ]]; then
     for PID in $(lsof -t "$CMUXD_SOCKET" 2>/dev/null); do
       kill "$PID" 2>/dev/null || true
     done
     rm -f "$CMUXD_SOCKET"
   fi
-  if [[ -S "$CMUX_SOCKET_PATH_VALUE" ]]; then
+  if [[ "$BUILD_ONLY" -ne 1 && -S "$CMUX_SOCKET_PATH_VALUE" ]]; then
     rm -f "$CMUX_SOCKET_PATH_VALUE"
   fi
   /usr/bin/codesign --force --sign - --timestamp=none --generate-entitlement-der "$STAGING_APP_PATH" >/dev/null 2>&1 || true
 fi
 APP_PATH="$STAGING_APP_PATH"
+if [[ "$BUILD_ONLY" -eq 1 ]]; then
+  echo "Built tagged Release app: $APP_PATH"
+  exit 0
+fi
 
 # Ensure any running instance is fully terminated, regardless of DerivedData path.
 /usr/bin/osascript -e "tell application id \"${BUNDLE_ID}\" to quit" >/dev/null 2>&1 || true

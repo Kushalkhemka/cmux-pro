@@ -2931,6 +2931,10 @@
 		A7C9D1E3F5B7A9C1D3E5F702 /* RemoteTmuxWindowReorderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7C9D1E3F5B7A9C1D3E5F701 /* RemoteTmuxWindowReorderTests.swift */; };
 		67EBA6DC05F54CA8EB52F25A /* RemoteTuiLinkManaging.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6F3597E0DD3186E5BB2B528 /* RemoteTuiLinkManaging.swift */; };
 		A9F2E3B7006A2E2D519A8A29 /* RemoteTuiMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DF11D8DA81D3BD618151AD3 /* RemoteTuiMachine.swift */; };
+		822CCE7A61370D6D57E89C08 /* RemoteZmxAttachOutcome.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43E7DBB2A22DCFE755FFA33A /* RemoteZmxAttachOutcome.swift */; };
+		A6BC7BDC2C94B78B977E3195 /* RemoteZmxController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22E78E6C6CB5DBD895ECF6C8 /* RemoteZmxController.swift */; };
+		389A1FD151B0D6FE92F048C0 /* RemoteZmxLaunch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A741311951AD8311CD0EDFE /* RemoteZmxLaunch.swift */; };
+		6A883C76D9AE194ED7625859 /* RemoteZmxWorkspaceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17F6C4234FEDB206B7EEB722 /* RemoteZmxWorkspaceTests.swift */; };
 		D5037010000000000000003 /* RenderableSystemSymbol.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5037010000000000000002 /* RenderableSystemSymbol.swift */; };
 		C58410010000000000000001 /* RenderableSystemSymbolTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C58410010000000000000002 /* RenderableSystemSymbolTests.swift */; };
 		D36A00040000000000000001 /* RendererRealizationController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D36A00040000000000000002 /* RendererRealizationController.swift */; };
@@ -3712,6 +3716,7 @@
 		7738C0087738C0087738C008 /* TerminalController+RemoteTmuxControlRefs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7738D0087738D0087738D008 /* TerminalController+RemoteTmuxControlRefs.swift */; };
 		7738C0047738C0047738C004 /* TerminalController+RemoteTmuxControlTopology.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7738D0047738D0047738D004 /* TerminalController+RemoteTmuxControlTopology.swift */; };
 		B49282191C80DC84B8AB0BCB /* TerminalController+RemoteTmuxTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1CCFC650BD590101D445C4A0 /* TerminalController+RemoteTmuxTestSupport.swift */; };
+		C5C19E6EE44506B732308FE8 /* TerminalController+RemoteZmx.swift in Sources */ = {isa = PBXBuildFile; fileRef = A73C3F4BB6287A00B9BF77A2 /* TerminalController+RemoteZmx.swift */; };
 		A1329C000000000000000101 /* TerminalController+SharedSizing.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1329C000000000000000001 /* TerminalController+SharedSizing.swift */; };
 		D310E509C9FA457B8AE81CF6 /* TerminalController+ShortcutConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBC516CC8FB0418AA9D72AB4 /* TerminalController+ShortcutConfiguration.swift */; };
 		A6E57A0F0000000000000001 /* TerminalController+SocketBoundedLanes.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6E57A0F0000000000000002 /* TerminalController+SocketBoundedLanes.swift */; };
@@ -4198,6 +4203,7 @@
 		D7AB12048000000000000006 /* Workspace+RemoteTerminalWorkingDirectory.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7AB12048000000000000007 /* Workspace+RemoteTerminalWorkingDirectory.swift */; };
 		7738C0037738C0037738C003 /* Workspace+RemoteTmuxControlTopology.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7738D0037738D0037738D003 /* Workspace+RemoteTmuxControlTopology.swift */; };
 		D77340010000000000000002 /* Workspace+RemoteTmuxTabOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D77340010000000000000001 /* Workspace+RemoteTmuxTabOrder.swift */; };
+		84A8CCA0535443955F5AECF2 /* Workspace+RemoteZmx.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB86E5EE0285AC88B9F00D6E /* Workspace+RemoteZmx.swift */; };
 		961900000000000000000001 /* Workspace+RestoredPanelTitleBoundary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 961900000000000000000002 /* Workspace+RestoredPanelTitleBoundary.swift */; };
 		9200A0019200A0019200A001 /* Workspace+RestoredWorkingDirectoryGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9200A0019200A0019200A002 /* Workspace+RestoredWorkingDirectoryGuard.swift */; };
 		381B026EFFAB40449AF805E8 /* Workspace+RightSidebarToolDrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52ACFA4197424088998A76C0 /* Workspace+RightSidebarToolDrop.swift */; };
@@ -7259,6 +7265,10 @@
 		A7C9D1E3F5B7A9C1D3E5F701 /* RemoteTmuxWindowReorderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteTmuxWindowReorderTests.swift; sourceTree = "<group>"; };
 		A6F3597E0DD3186E5BB2B528 /* RemoteTuiLinkManaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemoteTui/RemoteTuiLinkManaging.swift"; sourceTree = "<group>"; };
 		4DF11D8DA81D3BD618151AD3 /* RemoteTuiMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemoteTui/RemoteTuiMachine.swift"; sourceTree = "<group>"; };
+		43E7DBB2A22DCFE755FFA33A /* RemoteZmxAttachOutcome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteZmxAttachOutcome.swift; sourceTree = "<group>"; };
+		22E78E6C6CB5DBD895ECF6C8 /* RemoteZmxController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteZmxController.swift; sourceTree = "<group>"; };
+		5A741311951AD8311CD0EDFE /* RemoteZmxLaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemoteZmxLaunch.swift; sourceTree = "<group>"; };
+		17F6C4234FEDB206B7EEB722 /* RemoteZmxWorkspaceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "RemoteZmxWorkspaceTests.swift"; sourceTree = "<group>"; };
 		D5037010000000000000002 /* RenderableSystemSymbol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderableSystemSymbol.swift; sourceTree = "<group>"; };
 		C58410010000000000000002 /* RenderableSystemSymbolTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RenderableSystemSymbolTests.swift; sourceTree = "<group>"; };
 		D36A00040000000000000002 /* RendererRealizationController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/RendererRealizationController.swift; sourceTree = "<group>"; };
@@ -8032,6 +8042,7 @@
 		7738D0087738D0087738D008 /* TerminalController+RemoteTmuxControlRefs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+RemoteTmuxControlRefs.swift"; sourceTree = "<group>"; };
 		7738D0047738D0047738D004 /* TerminalController+RemoteTmuxControlTopology.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+RemoteTmuxControlTopology.swift"; sourceTree = "<group>"; };
 		1CCFC650BD590101D445C4A0 /* TerminalController+RemoteTmuxTestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Debug/RemoteTmux/TerminalController+RemoteTmuxTestSupport.swift"; sourceTree = "<group>"; };
+		A73C3F4BB6287A00B9BF77A2 /* TerminalController+RemoteZmx.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+RemoteZmx.swift"; sourceTree = "<group>"; };
 		A1329C000000000000000001 /* TerminalController+SharedSizing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+SharedSizing.swift"; sourceTree = "<group>"; };
 		BBC516CC8FB0418AA9D72AB4 /* TerminalController+ShortcutConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+ShortcutConfiguration.swift"; sourceTree = "<group>"; };
 		A6E57A0F0000000000000002 /* TerminalController+SocketBoundedLanes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TerminalController+SocketBoundedLanes.swift"; sourceTree = "<group>"; };
@@ -8514,6 +8525,7 @@
 		D7AB12048000000000000007 /* Workspace+RemoteTerminalWorkingDirectory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Workspace+RemoteTerminalWorkingDirectory.swift"; sourceTree = "<group>"; };
 		7738D0037738D0037738D003 /* Workspace+RemoteTmuxControlTopology.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Workspace+RemoteTmuxControlTopology.swift"; sourceTree = "<group>"; };
 		D77340010000000000000001 /* Workspace+RemoteTmuxTabOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Workspace+RemoteTmuxTabOrder.swift"; sourceTree = "<group>"; };
+		AB86E5EE0285AC88B9F00D6E /* Workspace+RemoteZmx.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Workspace+RemoteZmx.swift"; sourceTree = "<group>"; };
 		961900000000000000000002 /* Workspace+RestoredPanelTitleBoundary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Workspace+RestoredPanelTitleBoundary.swift"; sourceTree = "<group>"; };
 		9200A0019200A0019200A002 /* Workspace+RestoredWorkingDirectoryGuard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Workspace+RestoredWorkingDirectoryGuard.swift"; sourceTree = "<group>"; };
 		52ACFA4197424088998A76C0 /* Workspace+RightSidebarToolDrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Workspace+RightSidebarToolDrop.swift"; sourceTree = "<group>"; };
@@ -11725,6 +11737,11 @@
 				B4D8C93336B3DC2F9B4299AA /* AgentMessageCenter.swift */,
 				7ED7809AAA226469E36BA9FF /* TerminalController+AgentMessageSettings.swift */,
 				FC151062CCF4CC6D451CD24C /* ContentView+AgentMessagesCommandPalette.swift */,
+				43E7DBB2A22DCFE755FFA33A /* RemoteZmxAttachOutcome.swift */,
+				22E78E6C6CB5DBD895ECF6C8 /* RemoteZmxController.swift */,
+				5A741311951AD8311CD0EDFE /* RemoteZmxLaunch.swift */,
+				A73C3F4BB6287A00B9BF77A2 /* TerminalController+RemoteZmx.swift */,
+				AB86E5EE0285AC88B9F00D6E /* Workspace+RemoteZmx.swift */,
 			);
 			path = Sources;
 			sourceTree = "<group>";
@@ -13219,6 +13236,7 @@
 				52DCC8C8DADFD89BE7611119 /* CLINotifyProcessIntegrationRegressionTests+Desktop.swift */,
 				DFD38A422E92A103776448E9 /* CmuxTopTTYCollisionAttributionTests.swift */,
 				5FA4140BCE8D49BBAE4E8234 /* CodexForkMonitorArgumentTests.swift */,
+				17F6C4234FEDB206B7EEB722 /* RemoteZmxWorkspaceTests.swift */,
 			);
 			path = cmuxTests;
 			sourceTree = "<group>";
@@ -15558,6 +15576,9 @@
 				0F17C0DE0F17C0DE0F17C002 /* RemoteTmuxWindowRegistry.swift in Sources */,
 				67EBA6DC05F54CA8EB52F25A /* RemoteTuiLinkManaging.swift in Sources */,
 				A9F2E3B7006A2E2D519A8A29 /* RemoteTuiMachine.swift in Sources */,
+				822CCE7A61370D6D57E89C08 /* RemoteZmxAttachOutcome.swift in Sources */,
+				A6BC7BDC2C94B78B977E3195 /* RemoteZmxController.swift in Sources */,
+				389A1FD151B0D6FE92F048C0 /* RemoteZmxLaunch.swift in Sources */,
 				D5037010000000000000003 /* RenderableSystemSymbol.swift in Sources */,
 				D36A00040000000000000001 /* RendererRealizationController.swift in Sources */,
 				7490C00E7490C00E7490C00E /* RendererRealizationMemoryPressureResponder.swift in Sources */,
@@ -16114,6 +16135,7 @@
 				7738C0087738C0087738C008 /* TerminalController+RemoteTmuxControlRefs.swift in Sources */,
 				7738C0047738C0047738C004 /* TerminalController+RemoteTmuxControlTopology.swift in Sources */,
 				B49282191C80DC84B8AB0BCB /* TerminalController+RemoteTmuxTestSupport.swift in Sources */,
+				C5C19E6EE44506B732308FE8 /* TerminalController+RemoteZmx.swift in Sources */,
 				A1329C000000000000000101 /* TerminalController+SharedSizing.swift in Sources */,
 				D310E509C9FA457B8AE81CF6 /* TerminalController+ShortcutConfiguration.swift in Sources */,
 				A6E57A0F0000000000000001 /* TerminalController+SocketBoundedLanes.swift in Sources */,
@@ -16478,6 +16500,7 @@
 				D7AB12048000000000000006 /* Workspace+RemoteTerminalWorkingDirectory.swift in Sources */,
 				7738C0037738C0037738C003 /* Workspace+RemoteTmuxControlTopology.swift in Sources */,
 				D77340010000000000000002 /* Workspace+RemoteTmuxTabOrder.swift in Sources */,
+				84A8CCA0535443955F5AECF2 /* Workspace+RemoteZmx.swift in Sources */,
 				961900000000000000000001 /* Workspace+RestoredPanelTitleBoundary.swift in Sources */,
 				9200A0019200A0019200A001 /* Workspace+RestoredWorkingDirectoryGuard.swift in Sources */,
 				381B026EFFAB40449AF805E8 /* Workspace+RightSidebarToolDrop.swift in Sources */,
@@ -17856,6 +17879,7 @@
 				74060000000000000000000E /* RemoteTmuxWindowMirrorFocusSeedTests.swift in Sources */,
 				FA00C0DE0001BEEF0001CAFE /* RemoteTmuxWindowRegistryTests.swift in Sources */,
 				A7C9D1E3F5B7A9C1D3E5F702 /* RemoteTmuxWindowReorderTests.swift in Sources */,
+				6A883C76D9AE194ED7625859 /* RemoteZmxWorkspaceTests.swift in Sources */,
 				C58410010000000000000001 /* RenderableSystemSymbolTests.swift in Sources */,
 				D36A00050000000000000001 /* RendererRealizationPlannerTests.swift in Sources */,
 				A9126000C5E7F90123456789 /* ReopenLastClosedTests.swift in Sources */,

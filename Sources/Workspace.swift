@@ -199,6 +199,7 @@ extension Workspace {
             progress: progressSnapshot,
             gitBranch: gitBranchSnapshot,
             remote: remoteConfiguration?.sessionSnapshot(),
+            remoteZmxEndpoint: remoteZmxEndpoint,
             cloudVM: cloudVMBinding.map {
                 SessionCloudVMBindingSnapshot(vmID: $0.vmID, isBase: $0.isBase, remoteWorkspaceID: $0.remoteWorkspaceID, teamID: $0.teamID)
             },
@@ -256,6 +257,7 @@ extension Workspace {
            sessionRestoreIdentityExclusions.shouldAdopt(persistedStableId) {
             stableId = persistedStableId
         }
+        remoteZmxEndpoint = snapshot.remoteZmxEndpoint
         taskCreateOperationID = snapshot.taskCreateOperationID
 
         restoredTerminalScrollbackByPanelId.removeAll(keepingCapacity: false)
@@ -682,7 +684,8 @@ extension Workspace {
                 isRemoteTerminal: activeRemoteTerminalSurfaceIds.contains(panelId),
                 remotePTYSessionID: remotePTYSessionIDForSnapshot(panelId: panelId),
                 wasAgentRunning: localTmuxStartCommand == nil ? agentWasRunning : nil,
-                hasReceivedExplicitInput: terminalPanel.hasReceivedExplicitInput
+                hasReceivedExplicitInput: terminalPanel.hasReceivedExplicitInput,
+                remoteZmxBinding: terminalPanel.remoteZmxBinding
             )
             browserSnapshot = nil
             markdownSnapshot = nil
@@ -1564,6 +1567,11 @@ extension Workspace {
                inPane: paneId
            ) {
             return restoredCloudPanelID }
+        if snapshot.type == .terminal, snapshot.terminal?.remoteZmxBinding != nil {
+            guard let panelID = restoreZmxPanel(snapshot, inPane: paneId) else { return nil }
+            applySessionPanelMetadata(snapshot, toPanelId: panelID)
+            return panelID
+        }
         if usesSSHTui, remoteConfiguration?.preserveAfterTerminalExit == true, snapshot.type == .terminal {
             return restoreDeviceDisplayPanel(snapshot, in: paneId)
         }
@@ -4673,6 +4681,9 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
     /// Registers a bonsplit surface as the active owner for a panel.
     func bindSurface(_ surfaceId: TabID, toPanelId panelId: UUID) {
         paneTree.bindSurface(surfaceId, toPanelId: panelId)
+        if let terminal = panels[panelId] as? TerminalPanel, terminal.remoteZmxBinding != nil {
+            terminal.surface.requestBackgroundSurfaceStartIfNeeded()
+        }
     }
 
     /// Removes one bonsplit surface mapping.
@@ -4793,6 +4804,8 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
     }
     private var isDetachingCloseTransaction: Bool { splitLayout.isDetachingCloseTransaction }
     /// Single transaction owner for focus-neutral remote-tmux topology bookkeeping.
+    var remoteZmxEndpoint: RemoteZmxEndpoint?
+
     let remoteTmuxMirrorMutations = RemoteTmuxMirrorMutationCoordinator()
     private var pendingRemoteSurfaceTTYName: String?
     private var pendingRemoteSurfaceTTYSurfaceId: UUID?
@@ -6465,6 +6478,7 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
             return activity.hasActiveCommand
         }
         if let terminalPanel = panel as? TerminalPanel {
+            if terminalPanel.remoteZmxBinding != nil { return false }
             return panelNeedsConfirmClose(
                 panelId: panelId,
                 fallbackNeedsConfirmClose: terminalPanel.needsConfirmClose()
@@ -9060,7 +9074,8 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
         }
         // Cloud ownership precedes option dispatch, including pending panes.
         // Unsupported launch overrides fail closed instead of spawning a local PTY.
-        if let source = cloudTerminalSourcePlacement(forPanel: panelId) {
+        if terminalPanel(for: panelId)?.remoteZmxBinding == nil,
+           let source = cloudTerminalSourcePlacement(forPanel: panelId) {
             guard initialCommand == nil, initialInput == nil, tmuxStartCommand == nil,
                   remotePTYSessionID == nil, workingDirectory == nil, startupEnvironment.isEmpty,
                   initialDividerPosition == nil, !suppressWorkspaceRemoteStartupCommand else {
@@ -9135,8 +9150,15 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
         let requestedInitialCommand = initialCommand?.trimmingCharacters(in: .whitespacesAndNewlines)
         let explicitInitialCommand = (requestedInitialCommand?.isEmpty == false) ? requestedInitialCommand : nil
         let remoteTerminalStartupCommand = suppressWorkspaceRemoteStartupCommand ? nil : remoteTerminalStartupCommand()
-        let startupCommand = explicitInitialCommand ?? remoteTerminalStartupCommand
-        let remoteStartupCommandForEnvironment = explicitInitialCommand == nil ? remoteTerminalStartupCommand : nil
+        let zmxBinding = tmuxStartCommand == nil && !suppressWorkspaceRemoteStartupCommand &&
+            sessionRestoreLayoutSuppressionDepth == 0
+            ? newZmxBinding(sourcePanelID: panelId) : nil
+        let zmxDirectory = RemoteTerminalWorkingDirectoryResolver.normalized(workingDirectory, preserveExact: true)
+            ?? terminalPanel(for: panelId)?.surface.reportedWorkingDirectory
+        let startupCommand = zmxBinding.map {
+            RemoteZmxLaunch.command($0, create: true, command: explicitInitialCommand, workingDirectory: zmxDirectory)
+        } ?? explicitInitialCommand ?? remoteTerminalStartupCommand
+        let remoteStartupCommandForEnvironment = zmxBinding == nil && explicitInitialCommand == nil ? remoteTerminalStartupCommand : nil
         let explicitRemoteInitialWorkingDirectory = RemoteTerminalWorkingDirectoryResolver.normalized(startupEnvironment[Self.remoteInitialWorkingDirectoryEnvironmentKey], preserveExact: true)
         let newPanelID = UUID()
         let requestedRemotePTYSessionID = normalizedRemotePTYSessionID(remotePTYSessionID)
@@ -9172,11 +9194,11 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
 
         // Resolve cwd as explicit request, source reported cwd, source requested
         // startup cwd, then workspace currentDirectory.
-        let cwdResolution = resolveRemoteTerminalWorkingDirectory(requestedWorkingDirectory: workingDirectory, sourcePanelId: panelId, startupEnvironment: effectiveStartupEnvironment, explicitRemoteInitialWorkingDirectory: explicitRemoteInitialWorkingDirectory, isRemoteStartup: remoteStartupCommandForEnvironment != nil, inheritWorkingDirectoryFallback: true, resolveLocalFallback: true)
+        let cwdResolution = resolveRemoteTerminalWorkingDirectory(requestedWorkingDirectory: workingDirectory, sourcePanelId: panelId, startupEnvironment: effectiveStartupEnvironment, explicitRemoteInitialWorkingDirectory: explicitRemoteInitialWorkingDirectory, isRemoteStartup: remoteStartupCommandForEnvironment != nil || zmxBinding != nil, inheritWorkingDirectoryFallback: true, resolveLocalFallback: true)
         let splitWorkingDirectory = cwdResolution.resolvedWorkingDirectory
         let localWorkingDirectory = cwdResolution.localWorkingDirectory
         effectiveStartupEnvironment = cwdResolution.startupEnvironment
-        let tracksRemoteTerminalSurface = remoteTerminalStartupCommand != nil || effectiveRemotePTYSessionID != nil
+        let tracksRemoteTerminalSurface = remoteTerminalStartupCommand != nil || effectiveRemotePTYSessionID != nil || zmxBinding != nil
 #if DEBUG
         cmuxDebugLog(
             "split.cwd panelId=\(panelId.uuidString.prefix(5)) panelDir=\(panelDirectories[panelId] ?? "nil") requestedDir=\(terminalPanel(for: panelId)?.requestedWorkingDirectory ?? "nil") currentDir=\(currentDirectory) resolved=\(splitWorkingDirectory ?? "nil")"
@@ -9204,6 +9226,7 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
             allowTextBoxFocusDefault: focus && allowTextBoxFocusDefault
         )
         panels[newPanel.id] = newPanel
+        if let zmxBinding { adoptZmxBinding(zmxBinding, panel: newPanel, setTitle: false) }
         panelTitles[newPanel.id] = newPanel.displayTitle
         if let effectiveRemotePTYSessionID {
             remotePTYSessionIDsByPanelId[newPanel.id] = effectiveRemotePTYSessionID
@@ -9264,6 +9287,7 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
             newPanel.close()
             return nil
         }
+        if let zmxBinding { _ = setPanelCustomTitle(panelId: newPanel.id, title: zmxBinding.session, source: .auto) }
         publishCmuxSplitCreated(newPaneId, sourcePaneId: paneId, orientation: orientation, surfaceId: newPanel.id, kind: "terminal", origin: autoLayout ? "terminal_auto_layout" : "terminal_split", focused: focus)
 
 #if DEBUG
@@ -9326,7 +9350,9 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
         terminalFontSizeCreationPolicy: TerminalFontSizeCreationPolicy = .inherit,
         inheritWorkingDirectoryFallback: Bool = false,
         workingDirectoryFallbackSourcePanelId: UUID? = nil,
-        allowTextBoxFocusDefault: Bool = true
+        allowTextBoxFocusDefault: Bool = true,
+        remoteZmxBinding: RemoteZmxBinding? = nil,
+        createZmxSession: Bool = false
     ) -> TerminalPanel? {
         return newTerminalSurfaceOutcome(
             inPane: paneId,
@@ -9347,7 +9373,9 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
             terminalFontSizeCreationPolicy: terminalFontSizeCreationPolicy,
             inheritWorkingDirectoryFallback: inheritWorkingDirectoryFallback,
             workingDirectoryFallbackSourcePanelId: workingDirectoryFallbackSourcePanelId,
-            allowTextBoxFocusDefault: allowTextBoxFocusDefault
+            allowTextBoxFocusDefault: allowTextBoxFocusDefault,
+            remoteZmxBinding: remoteZmxBinding,
+            createZmxSession: createZmxSession
         ).panel
     }
 
@@ -9373,7 +9401,9 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
         terminalFontSizeCreationPolicy: TerminalFontSizeCreationPolicy = .inherit,
         inheritWorkingDirectoryFallback: Bool = false,
         workingDirectoryFallbackSourcePanelId: UUID? = nil,
-        allowTextBoxFocusDefault: Bool = true
+        allowTextBoxFocusDefault: Bool = true,
+        remoteZmxBinding: RemoteZmxBinding? = nil,
+        createZmxSession: Bool = false
     ) -> TerminalPanelCreationOutcome {
         guard !isRetiredFromOwningTabManager else { return .failed }
         // In a remote tmux mirror, a new tab means "create a tmux window"; never
@@ -9408,9 +9438,10 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
         }
         // Restore scaffolding has its own persisted identity. Interactive creates
         // inherit the selected source, even before its remote receipt arrives.
-        if restoredSurfaceId == nil, startupRestoreAgent == nil,
+        if restoredSurfaceId == nil, startupRestoreAgent == nil, remoteZmxBinding == nil,
            let selectedTab = bonsplitController.selectedTab(inPane: paneId),
            let selectedPanelID = panelIdFromSurfaceId(selectedTab.id),
+           terminalPanel(for: selectedPanelID)?.remoteZmxBinding == nil,
            let source = cloudTerminalSourcePlacement(forPanel: selectedPanelID) {
             guard initialCommand == nil, initialInput == nil, tmuxStartCommand == nil,
                   remotePTYSessionID == nil, workingDirectory == nil, startupEnvironment.isEmpty,
@@ -9440,7 +9471,9 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
             terminalFontSizeCreationPolicy: terminalFontSizeCreationPolicy,
             inheritWorkingDirectoryFallback: inheritWorkingDirectoryFallback,
             workingDirectoryFallbackSourcePanelId: workingDirectoryFallbackSourcePanelId,
-            allowTextBoxFocusDefault: allowTextBoxFocusDefault
+            allowTextBoxFocusDefault: allowTextBoxFocusDefault,
+            requestedZmxBinding: remoteZmxBinding,
+            createZmxSession: createZmxSession
         ) else { return .failed }
         return .created(panel)
     }
@@ -9464,7 +9497,9 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
         terminalFontSizeCreationPolicy: TerminalFontSizeCreationPolicy,
         inheritWorkingDirectoryFallback: Bool,
         workingDirectoryFallbackSourcePanelId: UUID?,
-        allowTextBoxFocusDefault: Bool
+        allowTextBoxFocusDefault: Bool,
+        requestedZmxBinding: RemoteZmxBinding?,
+        createZmxSession: Bool
     ) -> TerminalPanel? {
         let shouldFocusNewTab = focus ?? (bonsplitController.focusedPaneId == paneId)
         let previousFocusedPanelId = focusedPanelId
@@ -9480,8 +9515,18 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
         let requestedInitialCommand = initialCommand?.trimmingCharacters(in: .whitespacesAndNewlines)
         let explicitInitialCommand = (requestedInitialCommand?.isEmpty == false) ? requestedInitialCommand : nil
         let remoteTerminalStartupCommand = suppressWorkspaceRemoteStartupCommand ? nil : remoteTerminalStartupCommand()
-        let startupCommand = explicitInitialCommand ?? remoteTerminalStartupCommand
-        let remoteStartupCommandForEnvironment = explicitInitialCommand == nil ? remoteTerminalStartupCommand : nil
+        let zmxSource = workingDirectoryFallbackSourcePanelId ??
+            bonsplitController.selectedTab(inPane: paneId).map(\.id).flatMap(panelIdFromSurfaceId) ?? focusedPanelId
+        let zmxBinding = requestedZmxBinding ?? (tmuxStartCommand == nil && !suppressWorkspaceRemoteStartupCommand &&
+            sessionRestoreLayoutSuppressionDepth == 0
+            ? newZmxBinding(sourcePanelID: zmxSource) : nil)
+        let zmxDirectory = RemoteTerminalWorkingDirectoryResolver.normalized(workingDirectory, preserveExact: true)
+            ?? zmxSource.flatMap { terminalPanel(for: $0)?.surface.reportedWorkingDirectory }
+        let startupCommand = zmxBinding.map {
+            RemoteZmxLaunch.command($0, create: requestedZmxBinding == nil || createZmxSession,
+                command: explicitInitialCommand, workingDirectory: zmxDirectory)
+        } ?? explicitInitialCommand ?? remoteTerminalStartupCommand
+        let remoteStartupCommandForEnvironment = zmxBinding == nil && explicitInitialCommand == nil ? remoteTerminalStartupCommand : nil
         let explicitRemoteInitialWorkingDirectory = RemoteTerminalWorkingDirectoryResolver.normalized(startupEnvironment[Self.remoteInitialWorkingDirectoryEnvironmentKey], preserveExact: true)
         let newPanelID = restoredSurfaceId ?? UUID()
         let requestedRemotePTYSessionID = normalizedRemotePTYSessionID(remotePTYSessionID)
@@ -9507,10 +9552,10 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
         }
         let fallbackSourcePanelId = workingDirectoryFallbackSourcePanelId
             ?? bonsplitController.selectedTab(inPane: paneId).map(\.id).flatMap(panelIdFromSurfaceId)
-        let cwdResolution = resolveRemoteTerminalWorkingDirectory(requestedWorkingDirectory: workingDirectory, sourcePanelId: fallbackSourcePanelId, startupEnvironment: effectiveStartupEnvironment, explicitRemoteInitialWorkingDirectory: explicitRemoteInitialWorkingDirectory, isRemoteStartup: remoteStartupCommandForEnvironment != nil, inheritWorkingDirectoryFallback: inheritWorkingDirectoryFallback, resolveLocalFallback: inheritWorkingDirectoryFallback && startupCommand == nil)
+        let cwdResolution = resolveRemoteTerminalWorkingDirectory(requestedWorkingDirectory: workingDirectory, sourcePanelId: fallbackSourcePanelId, startupEnvironment: effectiveStartupEnvironment, explicitRemoteInitialWorkingDirectory: explicitRemoteInitialWorkingDirectory, isRemoteStartup: remoteStartupCommandForEnvironment != nil || zmxBinding != nil, inheritWorkingDirectoryFallback: inheritWorkingDirectoryFallback, resolveLocalFallback: inheritWorkingDirectoryFallback && startupCommand == nil)
         let localWorkingDirectory = cwdResolution.localWorkingDirectory
         effectiveStartupEnvironment = cwdResolution.startupEnvironment
-        let tracksRemoteTerminalSurface = remoteTerminalStartupCommand != nil || effectiveRemotePTYSessionID != nil
+        let tracksRemoteTerminalSurface = remoteTerminalStartupCommand != nil || effectiveRemotePTYSessionID != nil || zmxBinding != nil
 
         // Create new terminal panel. A restored panel reuses its persisted
         // surface id (the panel/surface id IS the ghostty surface id, a
@@ -9538,6 +9583,7 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
             allowTextBoxFocusDefault: shouldFocusNewTab && allowTextBoxFocusDefault
         )
         panels[newPanel.id] = newPanel
+        if let zmxBinding { adoptZmxBinding(zmxBinding, panel: newPanel, setTitle: false) }
         panelTitles[newPanel.id] = newPanel.displayTitle
         if let effectiveRemotePTYSessionID {
             remotePTYSessionIDsByPanelId[newPanel.id] = effectiveRemotePTYSessionID
@@ -9566,6 +9612,7 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
         }
 
         bindSurface(newTabId, toPanelId: newPanel.id)
+        if let zmxBinding { _ = setPanelCustomTitle(panelId: newPanel.id, title: zmxBinding.session, source: .auto) }
         if let startupRestoreAgent {
             terminalStartupRestoreCoordinator.stage(
                 panel: newPanel,
@@ -12117,9 +12164,11 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
             )
         }
         // A failed wrapper must leave a dead noninteractive surface, never a local login shell.
+        let zmxBinding = pendingRemoteDisconnect == nil && sessionRestoreLayoutSuppressionDepth == 0
+            ? newZmxBinding(sourcePanelID: nil) : nil
         let replacementInitialCommand = pendingRemoteDisconnect != nil && placeholderCommand == nil
             ? "/usr/bin/false"
-            : placeholderCommand
+            : (placeholderCommand ?? zmxBinding.map { RemoteZmxLaunch.command($0, create: true) })
         if replacementInitialCommand != nil {
             var config = replacementConfig ?? CmuxSurfaceConfigTemplate()
             config.waitAfterCommand = true
@@ -12131,10 +12180,12 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
             configTemplate: replacementConfig,
             portOrdinal: portOrdinal,
             initialCommand: replacementInitialCommand,
-            additionalEnvironment: startupEnvironmentMergingWorkspaceEnvironment([:])
+            additionalEnvironment: startupEnvironmentMergingWorkspaceEnvironment([:]),
+            isRemoteTerminal: zmxBinding != nil
         )
         configureNewTerminalPanel(newPanel)
         panels[newPanel.id] = newPanel
+        if let zmxBinding { adoptZmxBinding(zmxBinding, panel: newPanel, setTitle: false) }
         panelTitles[newPanel.id] = newPanel.displayTitle
         if pendingRemoteDisconnect != nil {
             remoteDisconnectPlaceholderPanelIds.insert(newPanel.id)
@@ -12149,6 +12200,7 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
             isPinned: false
         ) {
             bindSurface(newTabId, toPanelId: newPanel.id)
+            if let zmxBinding { _ = setPanelCustomTitle(panelId: newPanel.id, title: zmxBinding.session, source: .auto) }
             rememberTerminalConfigInheritanceSource(newPanel)
         }
 

@@ -13,6 +13,10 @@ import Foundation
 /// shim that strips the ssh framing and execs the remote command locally —
 /// the full mirror stack then runs hermetically (no sshd, no network).
 struct RemoteTmuxHost: Sendable, Equatable, Identifiable {
+    enum ControlSocketNamespace: String, Sendable {
+        case tmux
+        case zmx
+    }
     /// The ssh executable used when the caller doesn't inject one (the
     /// connection and transport inits both take `sshExecutablePath`).
     ///
@@ -39,6 +43,9 @@ struct RemoteTmuxHost: Sendable, Equatable, Identifiable {
     /// Optional explicit identity file (`-i`). `nil` defers to `~/.ssh/config`.
     let identityFile: String?
 
+    /// Separates discovery masters whose controllers have independent lifecycles.
+    let controlSocketNamespace: ControlSocketNamespace
+
     /// Stable identity matching the connection-uniqueness key. Two hosts with the
     /// same destination but a different port/identity are distinct endpoints (see
     /// ``connectionHash``), so `id` uses ``connectionHash`` rather than the
@@ -46,10 +53,12 @@ struct RemoteTmuxHost: Sendable, Equatable, Identifiable {
     /// ``RemoteTmuxController`` keys its per-endpoint state.
     var id: String { connectionHash }
 
-    init(destination: String, port: Int? = nil, identityFile: String? = nil) {
+    init(destination: String, port: Int? = nil, identityFile: String? = nil,
+         controlSocketNamespace: ControlSocketNamespace = .tmux) {
         self.destination = destination
         self.port = port
         self.identityFile = identityFile
+        self.controlSocketNamespace = controlSocketNamespace
     }
 
     /// A human-readable (but lossy) slug for the destination, used only for
@@ -82,7 +91,9 @@ struct RemoteTmuxHost: Sendable, Equatable, Identifiable {
     /// distinct endpoints must never collapse onto one socket and risk routing a
     /// command to the wrong server.
     var connectionHash: String {
-        let fingerprint = "\(destination)\u{1f}\(port.map(String.init) ?? "")\u{1f}\(identityFile ?? "")"
+        // Keep existing tmux socket identities stable while isolating zmx discovery.
+        let fingerprint = "\(destination)\u{1f}\(port.map(String.init) ?? "")\u{1f}\(identityFile ?? "")" +
+            (controlSocketNamespace == .tmux ? "" : "\u{1f}\(controlSocketNamespace.rawValue)")
         var hash: UInt64 = 0xcbf2_9ce4_8422_2325 // FNV offset basis
         for byte in fingerprint.utf8 {
             hash ^= UInt64(byte)
@@ -113,7 +124,7 @@ struct RemoteTmuxHost: Sendable, Equatable, Identifiable {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         // Fixed parts that can never be trimmed: directory, the `tmux-` prefix,
         // the `-<hash>.sock` tail, and the transient suffix OpenSSH binds first.
-        let prefix = "\(home)/.cmux/ssh/tmux-"
+        let prefix = "\(home)/.cmux/ssh/\(controlSocketNamespace.rawValue)-"
         let suffix = "-\(connectionHash).sock"
         let fixedBytes = prefix.utf8.count + suffix.utf8.count + Self.opensshTransientSuffixLength
         let slugBudget = max(0, Self.maxUnixSocketPathLength - fixedBytes)
