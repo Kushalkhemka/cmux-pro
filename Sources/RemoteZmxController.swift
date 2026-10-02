@@ -97,10 +97,14 @@ final class RemoteZmxController {
         // Resolve again after SSH preflight: a closed caller must never redirect the mapping.
         let destination: Workspace?
         if preferCallerSurface {
-            guard let callerSurfaceID,
-                  let owner = allWorkspaces.first(where: { $0.terminalPanel(for: callerSurfaceID) != nil }) else {
-                throw RemoteTmuxError.windowCreationFailed
-            }
+            guard let callerSurfaceID else { throw RemoteTmuxError.windowCreationFailed }
+            let owner = allWorkspaces.first(where: { $0.terminalPanel(for: callerSurfaceID) != nil })
+                ?? DockSplitStore.liveStores.first(where: { $0.panels[callerSurfaceID] is TerminalPanel }).flatMap { dock in
+                    guard let manager = app.dockReferenceTabManager(for: dock) else { return nil }
+                    return dock.scope == .workspace
+                        ? manager.tabs.first(where: { $0.id == dock.workspaceId }) : manager.selectedWorkspace
+                }
+            guard let owner else { throw RemoteTmuxError.windowCreationFailed }
             destination = owner
         } else if let workspaceID {
             guard let manager = app.tabManagerFor(tabId: workspaceID),
