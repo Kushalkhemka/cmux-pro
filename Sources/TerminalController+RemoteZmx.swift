@@ -22,6 +22,9 @@ extension TerminalController {
         guard params["create"] as? Bool != true || params["session"] != nil else {
             return v2Error(id: id, code: "invalid_params", message: String(localized: "remoteZmx.invalidParams", defaultValue: "Invalid zmx connection or session."))
         }
+        guard params["workspace_id"] == nil || v2UUID(params, "workspace_id") != nil else {
+            return v2Error(id: id, code: "invalid_params", message: String(localized: "remoteZmx.invalidParams", defaultValue: "Invalid zmx connection or session."))
+        }
         let session = params["session"] as? String
         let create = params["create"] as? Bool ?? false
         let activate = params["activate"] as? Bool ?? false
@@ -48,7 +51,9 @@ extension TerminalController {
                 method == "remote.zmx.window" ? .dedicatedNewWindow : self.remoteTmuxAttachWindowTarget(routing: routing)
             }
             let outcome = try await controller.mirror(endpoint: endpoint, session: session, create: create,
-                target: target, activate: activate, title: title)
+                target: target, activate: activate, title: title,
+                workspaceID: method == "remote.zmx.mirror" ? routing.workspaceID : nil,
+                callerSurfaceID: method == "remote.zmx.mirror" ? routing.surfaceID : nil)
             switch outcome {
             case .authentication(let argv): return ["host": endpoint.destination, "auth_required": true, "ssh_argv": argv]
             case .mirrored(let windowID, let mappings):

@@ -1,8 +1,9 @@
 # Remote zmx sessions
 
 `cmux ssh-zmx <SSH alias or user@host>` discovers zmx sessions on a remote
-machine and opens a native workspace for that endpoint. Each session is a
-terminal tab. cmux owns the tabs, splits, titles, pinning, order, and focus;
+machine. When run inside cmux, it adds terminal tabs to the caller’s workspace
+and pane, keeping the terminal that ran the command. Outside cmux, it opens
+or reuses a native workspace for that endpoint. Each session is a terminal tab. cmux owns the tabs, splits, titles, pinning, order, and focus;
 zmx owns each shell's persistent process and terminal state.
 
 ```sh
@@ -10,6 +11,7 @@ cmux ssh-zmx dev
 cmux ssh-zmx dev --session agent-one
 cmux ssh-zmx dev --session agent-two --create
 cmux ssh-zmx dev --list
+cmux ssh-zmx dev --workspace workspace:2
 cmux --json ssh-zmx dev
 ```
 
@@ -28,7 +30,11 @@ the running process and screen; cmux does not replay stale local scrollback or
 launch a second copy of an agent. A missing saved session is reported and is
 not deliberately recreated. Explicitly use `--session NAME --create` to create
 it again. Repeat `ssh-zmx` to discover new sessions or reattach ended clients;
-live mappings are reused, including terminals moved to another workspace.
+live mappings in the destination workspace are reused. A mapping in another
+workspace keeps its layout; the caller’s workspace gets its own local view of
+the same remote process. This does not create another remote session.
+`--workspace` explicitly selects a destination. `--new-window` bypasses the
+caller’s workspace and uses the endpoint’s separate mapping window.
 
 SSH transport failures reconnect with backoff from one to fifteen seconds.
 Successful detach, a shell exiting, and remote command errors stop the loop.
@@ -66,7 +72,9 @@ attachment cannot switch an unrelated inherited client.
 The local v2 methods are `remote.zmx.sessions`, `remote.zmx.mirror`, and
 `remote.zmx.window`. They take `host`, optional `port`, `identity_file`,
 `zmx_path`, and `zmx_dir`. Mirror/window also accept `session`, `create`,
-`activate`, `workspace_name`, and the same window routing as remote tmux.
+`activate`, `workspace_name`, and window routing. `remote.zmx.mirror` uses
+`workspace_id` as the destination and `surface_id` to select the caller’s pane.
+A closed destination causes an error rather than routing to another workspace.
 `create` applies only to an explicitly requested session. Mirror responses
 include session names, workspace IDs, and surface IDs.
 

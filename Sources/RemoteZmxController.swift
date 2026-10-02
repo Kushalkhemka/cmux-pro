@@ -47,7 +47,8 @@ final class RemoteZmxController {
 
     /// Performs SSH preflight before creating UI, then commits layout without awaits.
     func mirror(endpoint: RemoteZmxEndpoint, session: String?, create: Bool,
-                target: RemoteTmuxAttachWindowTarget, activate: Bool, title: String?) async throws -> RemoteZmxAttachOutcome {
+                target: RemoteTmuxAttachWindowTarget, activate: Bool, title: String?,
+                workspaceID: UUID? = nil, callerSurfaceID: UUID? = nil) async throws -> RemoteZmxAttachOutcome {
         let host = sshHost(endpoint)
         let discovered: [RemoteZmxBinding]
         do {
@@ -64,7 +65,8 @@ final class RemoteZmxController {
         }
         try Task.checkCancellation()
         return try mirrorDiscovered(endpoint: endpoint, discovered: discovered, session: session,
-            create: create, target: target, activate: activate, title: title)
+            create: create, target: target, activate: activate, title: title,
+            workspaceID: workspaceID, callerSurfaceID: callerSurfaceID)
     }
 
     /// Commits a discovered mapping atomically after SSH preflight.
@@ -91,15 +93,25 @@ final class RemoteZmxController {
         }
         guard let app = AppDelegate.shared else { throw RemoteTmuxError.windowCreationFailed }
         let allWorkspaces = app.surfaceCatalogWorkspaces()
-        let stores = DockSplitStore.liveStores
+        // Resolve again after SSH preflight: a closed caller must never redirect the mapping.
+        let destination: Workspace?
+        if let workspaceID {
+            guard let manager = app.tabManagerFor(tabId: workspaceID),
+                  let workspace = manager.tabs.first(where: { $0.id == workspaceID }) else {
+                throw RemoteTmuxError.windowCreationFailed
+            }
+            destination = workspace
+        } else { destination = nil }
+        let mappingWorkspaces = destination.map { [$0] } ?? allWorkspaces
+        let stores = destination == nil ? DockSplitStore.liveStores : []
         let matches: (any Panel) -> Bool = { panel in
             guard let binding = (panel as? TerminalPanel)?.remoteZmxBinding, binding.endpoint == endpoint else { return false }
             return session == nil || binding.session == session
         }
-        let requestedOwner = session.flatMap { _ in allWorkspaces.first { $0.panels.values.contains(where: matches) } }
+        let requestedOwner = session.flatMap { _ in mappingWorkspaces.first { $0.panels.values.contains(where: matches) } }
         let requestedDock = session.flatMap { _ in stores.first { $0.panels.values.contains(where: matches) } }
-        let existing = requestedOwner ?? allWorkspaces.first { $0.remoteZmxEndpoint == endpoint }
-            ?? allWorkspaces.first { $0.panels.values.contains(where: matches) }
+        let existing = destination ?? requestedOwner ?? mappingWorkspaces.first { $0.remoteZmxEndpoint == endpoint }
+            ?? mappingWorkspaces.first { $0.panels.values.contains(where: matches) }
         let existingDock = stores.first { $0.panels.values.contains(where: matches) }
         let existingManager = requestedOwner?.owningTabManager
             ?? requestedDock.flatMap { app.dockReferenceTabManager(for: $0) }
@@ -118,7 +130,7 @@ final class RemoteZmxController {
             windowID = resolved
         }
         guard let manager = app.tabManagerFor(windowId: windowID) else { throw RemoteTmuxError.windowCreationFailed }
-        let liveTerminals = allWorkspaces.flatMap { $0.panels.values.compactMap { $0 as? TerminalPanel } } +
+        let liveTerminals = mappingWorkspaces.flatMap { $0.panels.values.compactMap { $0 as? TerminalPanel } } +
             stores.flatMap { $0.panels.values.compactMap { $0 as? TerminalPanel } }
         let alreadyMapped = Set(liveTerminals.compactMap(\.remoteZmxBinding))
         if session == nil, discovered.isEmpty,
@@ -127,9 +139,10 @@ final class RemoteZmxController {
             created.removeAll()
         }
         var workspace = existing
+        if let destination, destination.remoteZmxEndpoint == nil { destination.remoteZmxEndpoint = endpoint }
         for binding in bindings {
             if alreadyMapped.contains(binding) {
-                if let owner = allWorkspaces.first(where: { w in
+                if let owner = mappingWorkspaces.first(where: { w in
                     w.panels.values.contains { ($0 as? TerminalPanel)?.remoteZmxBinding == binding }
                 }), let panel = owner.panels.values.compactMap({ $0 as? TerminalPanel }).first(where: { $0.remoteZmxBinding == binding }),
                    let surface = panel.surface.surface, ghostty_surface_process_exited(surface) {
@@ -154,7 +167,8 @@ final class RemoteZmxController {
                 newWorkspace.remoteZmxEndpoint = endpoint
                 newWorkspace.adoptZmxBinding(binding, panel: panel)
                 workspace = newWorkspace
-            } else if let workspace, let pane = workspace.bonsplitController.focusedPaneId ?? workspace.bonsplitController.allPaneIds.first {
+            } else if let workspace, let pane = callerSurfaceID.flatMap({ workspace.paneId(forPanelId: $0) })
+                ?? workspace.bonsplitController.focusedPaneId ?? workspace.bonsplitController.allPaneIds.first {
                 guard let panel = workspace.newTerminalSurface(inPane: pane, focus: false,
                     autoRefreshMetadata: false, suppressWorkspaceRemoteStartupCommand: true,
                     remoteZmxBinding: binding, createZmxSession: created.contains(binding)) else {
@@ -170,8 +184,9 @@ final class RemoteZmxController {
             _ = app.focusMainWindow(windowId: windowID)
         } else if activate, let workspace {
             manager.selectWorkspace(workspace)
-            if let session, let panel = workspace.panels.values.first(where: {
-                ($0 as? TerminalPanel)?.remoteZmxBinding?.session == session &&
+            if let focusedSession = session ?? (destination == nil ? nil : bindings.first?.session),
+               let panel = workspace.panels.values.first(where: {
+                ($0 as? TerminalPanel)?.remoteZmxBinding?.session == focusedSession &&
                 ($0 as? TerminalPanel)?.remoteZmxBinding?.endpoint == endpoint
             }) {
                 workspace.focusPanel(panel.id)
@@ -194,6 +209,6 @@ final class RemoteZmxController {
                 return .init(session: binding.session, workspaceID: dock.workspaceId, surfaceID: panel.id)
             }
         }
-        return .mirrored(windowID: windowID, mappings: mapped)
+        return .mirrored(windowID: windowID, mappings: mapped.filter { workspaceID == nil || $0.workspaceID == workspaceID })
     }
 }

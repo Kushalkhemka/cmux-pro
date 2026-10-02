@@ -37,6 +37,11 @@ struct RemoteZmxWorkspaceTests {
         }
         let caller = try #require(manager.selectedWorkspace)
         let original = try #require(caller.panels.values.first as? TerminalPanel)
+        let callerPane = try #require(caller.paneId(forPanelId: original.id))
+        let alternative = try #require(caller.withSplitSpaceAdmissionBypass {
+            caller.newTerminalSplit(from: original.id, orientation: .horizontal, focus: true)
+        })
+        #expect(caller.paneId(forPanelId: alternative.id) != callerPane)
         let endpoint = try RemoteZmxEndpoint(destination: "caller-routing.example.test")
         let bindings = try ["agent-one", "agent-two"].map { try RemoteZmxBinding(endpoint: endpoint, session: $0) }
         let other = otherManager.addWorkspace(title: "Existing mapping", initialTerminalCommand: "/usr/bin/true", select: false)
@@ -55,8 +60,9 @@ struct RemoteZmxWorkspaceTests {
             #expect(mappedWindow == window)
             #expect(mappings.count == 2)
             #expect(mappings.allSatisfy { $0.workspaceID == caller.id })
-            #expect(caller.panels.count == 3)
+            #expect(caller.panels.count == 4)
             #expect(Set(caller.panels.values.compactMap { ($0 as? TerminalPanel)?.remoteZmxBinding }) == Set(bindings))
+            #expect(mappings.allSatisfy { caller.paneId(forPanelId: $0.surfaceID) == callerPane })
             #expect(caller.terminalPanel(for: original.id) === original)
             #expect(other.terminalPanel(for: retained.id) === retained)
             #expect(other.panels.count == 1)
