@@ -70,6 +70,49 @@ struct RemoteZmxWorkspaceTests {
         }
     }
 
+    @Test(arguments: [false, true])
+    func inferredCallerFollowsMovedTerminalButExplicitWorkspaceWins(closeSource: Bool) throws {
+        let previousApp = AppDelegate.shared
+        let app = previousApp ?? AppDelegate()
+        let previousManager = app.tabManager
+        let manager = TabManager(autoWelcomeIfNeeded: false)
+        let window = app.registerMainWindowContextForTesting(tabManager: manager)
+        AppDelegate.shared = app
+        app.tabManager = manager
+        defer {
+            for workspace in Array(manager.tabs) {
+                workspace.remoteZmxEndpoint = nil
+                for id in Array(workspace.panels.keys) { _ = workspace.closePanel(id, force: true) }
+            }
+            app.unregisterMainWindowContextForTesting(windowId: window)
+            app.tabManager = previousManager
+            AppDelegate.shared = previousApp
+        }
+        let source = try #require(manager.selectedWorkspace)
+        let caller = try #require(source.panels.values.first as? TerminalPanel)
+        let destination = manager.addWorkspace(title: "Moved caller", initialTerminalCommand: "/usr/bin/true", select: false)
+        let transfer = try #require(source.detachSurface(panelId: caller.id))
+        let pane = try #require(destination.bonsplitController.allPaneIds.first)
+        _ = try #require(destination.attachDetachedSurface(transfer, inPane: pane, focus: false))
+        if closeSource { manager.closeWorkspace(source, recordHistory: false) }
+        let endpoint = try RemoteZmxEndpoint(destination: "moved-caller.example.test")
+        let binding = try RemoteZmxBinding(endpoint: endpoint, session: "agent")
+        let controller = RemoteZmxController()
+        let result = try controller.mirrorDiscovered(endpoint: endpoint, discovered: [binding],
+            session: nil, create: false, target: .contextualWindow(window), activate: false,
+            title: nil, workspaceID: source.id, callerSurfaceID: caller.id, preferCallerSurface: true)
+        guard case .mirrored(_, let mappings) = result else { Issue.record("Expected mapping"); return }
+        #expect(mappings.count == 1)
+        #expect(mappings.allSatisfy { $0.workspaceID == destination.id })
+        if !closeSource {
+            let explicit = try controller.mirrorDiscovered(endpoint: endpoint, discovered: [binding],
+                session: nil, create: false, target: .contextualWindow(window), activate: false,
+                title: nil, workspaceID: source.id, callerSurfaceID: caller.id, preferCallerSurface: false)
+            guard case .mirrored(_, let explicitMappings) = explicit else { Issue.record("Expected explicit mapping"); return }
+            #expect(explicitMappings.allSatisfy { $0.workspaceID == source.id })
+        }
+    }
+
     @Test func closedCallerWorkspaceDoesNotFallBackToAnotherWorkspace() throws {
         let previousApp = AppDelegate.shared
         let app = previousApp ?? AppDelegate()

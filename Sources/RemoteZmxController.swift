@@ -73,7 +73,7 @@ final class RemoteZmxController {
     func mirrorDiscovered(endpoint: RemoteZmxEndpoint, discovered: [RemoteZmxBinding],
                           session: String?, create: Bool, target: RemoteTmuxAttachWindowTarget,
                           activate: Bool, title: String?, workspaceID: UUID? = nil,
-                          callerSurfaceID: UUID? = nil) throws -> RemoteZmxAttachOutcome {
+                          callerSurfaceID: UUID? = nil, preferCallerSurface: Bool = false) throws -> RemoteZmxAttachOutcome {
         var bindings = discovered
         var created: Set<RemoteZmxBinding> = []
         if let session {
