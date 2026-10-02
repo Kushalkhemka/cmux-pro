@@ -71,8 +71,15 @@ public struct RemoteZmxBinding: Codable, Hashable, Sendable {
         let q = RemoteZmxEndpoint.quote
         let prefix = ([sshExecutable] + sshArguments + ["-tt", "--", endpoint.destination])
             .map(q).joined(separator: " ")
-        let reconnect = prefix + " " + q(attachScript(create: false))
-        let initial = prefix + " " + q(attachScript(create: create, command: command, workingDirectory: workingDirectory))
+        // SSH first parses the remote command in the account's login shell.
+        // Keep that command on one line even for tcsh and multiline creation commands.
+        func remoteCommand(_ program: String) -> String {
+            let encoded = program.utf8.map { String(format: "\\%03o", $0) }.joined()
+            let decoder = "exec /bin/sh -c \"$(printf '%b' \(q(encoded)))\""
+            return "/bin/sh -c " + q(decoder)
+        }
+        let reconnect = prefix + " " + q(remoteCommand(attachScript(create: false)))
+        let initial = prefix + " " + q(remoteCommand(attachScript(create: create, command: command, workingDirectory: workingDirectory)))
         let script = """
         delay=1;
         \(initial)

@@ -9,6 +9,7 @@ NAME_SET=0
 BUNDLE_SET=0
 DERIVED_SET=0
 TAG=""
+AD_HOC=0
 # Matches CmuxStateDirectory (non-TCC ~/.local/state/cmux) where the app/CLI now
 # read the last-socket-path markers (https://github.com/manaflow-ai/cmux/issues/5146).
 # Resolve the real account home via getpwuid (the same syscall
@@ -55,6 +56,8 @@ Options:
   --name <app name>      Override app display/bundle name.
   --bundle-id <id>       Override bundle identifier.
   --derived-data <path>  Override derived data path.
+  --ad-hoc              Sign a tagged build locally without a developer certificate.
+                         Builds only this Mac's architecture and omits restricted entitlements.
   -h, --help             Show this help.
 EOF
 }
@@ -113,6 +116,10 @@ while [[ $# -gt 0 ]]; do
       DERIVED_SET=1
       shift 2
       ;;
+    --ad-hoc)
+      AD_HOC=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -124,6 +131,11 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+if [[ "$AD_HOC" -eq 1 && -z "$TAG" ]]; then
+  echo "error: --ad-hoc requires --tag for an isolated local build" >&2
+  exit 1
+fi
 
 if [[ -n "$TAG" ]]; then
   TAG_ID="$(sanitize_bundle "$TAG")"
@@ -151,6 +163,15 @@ XCODEBUILD_ARGS=(
 )
 if [[ -n "$DERIVED_DATA" ]]; then
   XCODEBUILD_ARGS+=(-derivedDataPath "$DERIVED_DATA")
+fi
+if [[ "$AD_HOC" -eq 1 ]]; then
+  XCODEBUILD_ARGS+=(
+    CODE_SIGN_IDENTITY=-
+    CODE_SIGN_ENTITLEMENTS=
+    DEVELOPMENT_TEAM=
+    CODE_SIGN_STYLE=Manual
+    ONLY_ACTIVE_ARCH=YES
+  )
 fi
 if [[ -z "$TAG" ]]; then
   XCODEBUILD_ARGS+=(

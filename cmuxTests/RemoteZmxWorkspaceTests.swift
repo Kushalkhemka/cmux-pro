@@ -12,6 +12,53 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct RemoteZmxWorkspaceTests {
+    @Test(arguments: [false, true])
+    func requestedDockMappingWinsOverOriginalWorkspace(otherWindow: Bool) throws {
+        let previousApp = AppDelegate.shared
+        let app = previousApp ?? AppDelegate()
+        let previousManager = app.tabManager
+        let manager = TabManager(autoWelcomeIfNeeded: false)
+        let sourceWindow = app.registerMainWindowContextForTesting(tabManager: manager)
+        let dockManager = otherWindow ? TabManager(autoWelcomeIfNeeded: false) : manager
+        let dockWindow = otherWindow ? app.registerMainWindowContextForTesting(tabManager: dockManager) : sourceWindow
+        AppDelegate.shared = app
+        app.tabManager = manager
+        let dock = DockSplitStore(workspaceId: dockWindow, scope: .global, baseDirectoryProvider: { nil })
+        defer {
+            dock.closeAllPanels()
+            for owner in [manager, dockManager] {
+                for workspace in Array(owner.tabs) {
+                    for id in Array(workspace.panels.keys) { _ = workspace.closePanel(id, force: true) }
+                }
+            }
+            if otherWindow { app.unregisterMainWindowContextForTesting(windowId: dockWindow) }
+            app.unregisterMainWindowContextForTesting(windowId: sourceWindow)
+            app.tabManager = previousManager
+            AppDelegate.shared = previousApp
+        }
+        let workspace = try #require(manager.selectedWorkspace)
+        let endpoint = try RemoteZmxEndpoint(destination: "dock-focus.example.test")
+        workspace.remoteZmxEndpoint = endpoint
+        let first = try #require(workspace.panels.values.first as? TerminalPanel)
+        let movedBinding = try RemoteZmxBinding(endpoint: endpoint, session: "moved")
+        workspace.adoptZmxBinding(movedBinding, panel: first)
+        let pane = try #require(workspace.bonsplitController.allPaneIds.first)
+        let retained = try #require(workspace.newTerminalSurface(inPane: pane, focus: false))
+        let retainedBinding = try #require(retained.remoteZmxBinding)
+        let transfer = try #require(workspace.detachSurface(panelId: first.id))
+        dock.ensureLoaded()
+        let dockPane = try #require(dock.bonsplitController.allPaneIds.first)
+        let movedID = try #require(dock.attachDetachedSurface(transfer, inPane: dockPane, focus: false))
+        let otherID = try #require(dock.newSurface(kind: .terminal, inPane: dockPane, sourcePanelId: movedID, focus: true))
+        #expect(dock.focusedPanelId == otherID)
+        let result = try RemoteZmxController().mirrorDiscovered(endpoint: endpoint,
+            discovered: [movedBinding, retainedBinding], session: "moved", create: false,
+            target: .contextualWindow(sourceWindow), activate: true, title: nil)
+        guard case .mirrored(let windowID, _) = result else { Issue.record("Expected native mapping"); return }
+        #expect(windowID == dockWindow)
+        #expect(dock.focusedPanelId == movedID)
+    }
+
     @Test func movedMappingRestoresBeforeManagedSSHWorkspaceRouting() throws {
         let source = Workspace(title: "zmx", initialTerminalCommand: "/usr/bin/true")
         let endpoint = try RemoteZmxEndpoint(destination: "original.example.test")
@@ -176,7 +223,10 @@ struct RemoteZmxWorkspaceTests {
         #expect(Set(restored.panels.values.compactMap { ($0 as? TerminalPanel)?.remoteZmxBinding }) == Set(bindings))
         #expect(restored.bonsplitController.allPaneIds.count == dock.bonsplitController.allPaneIds.count)
         let previousTab = try #require(dock.surfaceId(forPanelId: movedID))
+        dock.focusPanel(tabID)
+        #expect(dock.focusedPanelId != movedID)
         let revived = try #require(dock.respawnZmxPanel(panelID: movedID))
+        #expect(revived.surface.debugBackgroundSurfaceStartQueuedForTesting())
         #expect(revived.id == movedID)
         #expect(revived.stableSurfaceId == terminal.stableSurfaceId)
         #expect(revived.remoteZmxBinding == bindings.first)

@@ -476,6 +476,42 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
         }
     }
 
+    /// Reattaches a mapped session without replacing its Dock tab or split.
+    @discardableResult
+    func respawnZmxPanel(panelID: UUID, create: Bool = false) -> TerminalPanel? {
+        guard !isRetired, let oldPanel = panels[panelID] as? TerminalPanel,
+              let binding = oldPanel.remoteZmxBinding,
+              let tabID = surfaceId(forPanelId: panelID) else { return nil }
+        flushPendingTerminalTitleUpdates()
+        var config = inheritedTerminalFontSizeConfig(sourcePanelId: panelID) ?? CmuxSurfaceConfigTemplate()
+        config.waitAfterCommand = true
+        let draft = oldPanel.sessionTextBoxDraftSnapshot()
+        let hadInput = oldPanel.hasReceivedExplicitInput
+        let stableID = oldPanel.stableSurfaceId
+        let environment = oldPanel.surface.respawnAdditionalEnvironment
+        let overrides = oldPanel.surface.respawnInitialEnvironmentOverrides
+        terminalFontSizeChangeCoordinator?.terminalWillLeaveDock(oldPanel, dock: self)
+        _ = removeDetachedSurfaceTransfer(forPanelID: panelID)
+        panelCancellables.removeValue(forKey: panelID)?.cancel()
+        oldPanel.close()
+        let panel = TerminalPanel(id: panelID, workspaceId: workspaceId,
+            context: oldPanel.surface.launchContext, configTemplate: config,
+            workingDirectory: FileManager.default.homeDirectoryForCurrentUser.path,
+            initialCommand: RemoteZmxLaunch.command(binding, create: create),
+            initialEnvironmentOverrides: overrides, additionalEnvironment: environment,
+            focusPlacement: .rightSidebarDock, isRemoteTerminal: true)
+        panel.remoteZmxBinding = binding
+        panel.adoptStableSurfaceId(stableID)
+        panel.restoreExplicitInputState(hadInput)
+        panel.restoreSessionTextBoxDraft(draft)
+        panels[panelID] = panel
+        installSubscription(for: panel)
+        bindSurface(tabID, toPanelId: panelID)
+        applyVisibility(to: panel)
+        if focusedPanelId == panelID { focusPanel(panelID) }
+        return panel
+    }
+
     /// Removes one Dock tab mapping, promoting a remaining alias when necessary.
     func removeSurfaceMapping(forSurfaceId surfaceId: TabID) {
         guard let panelId = surfaceIdToPanelId.removeValue(forKey: surfaceId),

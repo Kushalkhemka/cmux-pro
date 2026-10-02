@@ -1,5 +1,6 @@
 import CmuxCloud
 import CmuxCore
+import CmuxTerminal
 import GhosttyKit
 import Foundation
 import Observation
@@ -8,6 +9,14 @@ import Observation
 @MainActor @Observable
 final class RemoteZmxController {
     private let transports = RemoteTmuxTransportRegistry()
+
+    /// Resolves the current panel owner, rejecting callbacks from a replaced runtime.
+    func binding(for surface: TerminalSurface) -> RemoteZmxBinding? {
+        let terminals = (AppDelegate.shared?.surfaceCatalogWorkspaces() ?? []).flatMap {
+            $0.panels.values.compactMap { $0 as? TerminalPanel }
+        } + DockSplitStore.liveStores.flatMap { $0.panels.values.compactMap { $0 as? TerminalPanel } }
+        return terminals.first { $0.surface === surface }?.remoteZmxBinding
+    }
 
     func detachAll() {
         var hosts = Dictionary(transports.allHosts().map { ($0.connectionHash, $0) }, uniquingKeysWith: { first, _ in first })
@@ -50,6 +59,18 @@ final class RemoteZmxController {
             }
             throw error
         }
+        guard try await transports.transport(for: host).ensureMasterReady() else {
+            throw RemoteTmuxError.unreachable(endpoint.destination)
+        }
+        try Task.checkCancellation()
+        return try mirrorDiscovered(endpoint: endpoint, discovered: discovered, session: session,
+            create: create, target: target, activate: activate, title: title)
+    }
+
+    /// Commits a discovered mapping atomically after SSH preflight.
+    func mirrorDiscovered(endpoint: RemoteZmxEndpoint, discovered: [RemoteZmxBinding],
+                          session: String?, create: Bool, target: RemoteTmuxAttachWindowTarget,
+                          activate: Bool, title: String?) throws -> RemoteZmxAttachOutcome {
         var bindings = discovered
         var created: Set<RemoteZmxBinding> = []
         if let session {
@@ -64,10 +85,6 @@ final class RemoteZmxController {
             bindings = [binding]
             created.insert(binding)
         }
-        guard try await transports.transport(for: host).ensureMasterReady() else {
-            throw RemoteTmuxError.unreachable(endpoint.destination)
-        }
-        try Task.checkCancellation()
         guard ManagedRemoteConnectionsPolicy.isEnabled else {
             throw RemoteTmuxError.unreachable(ManagedRemoteConnectionsPolicy.disabledMessage)
         }
@@ -115,6 +132,11 @@ final class RemoteZmxController {
                    let replacement = owner.respawnTerminalSurface(panelId: panel.id,
                     command: RemoteZmxLaunch.command(binding, create: created.contains(binding)), focus: false) {
                     owner.adoptZmxBinding(binding, panel: replacement, setTitle: false)
+                } else if let dock = stores.first(where: { dock in
+                    dock.panels.values.contains { ($0 as? TerminalPanel)?.remoteZmxBinding == binding }
+                }), let panel = dock.panels.values.compactMap({ $0 as? TerminalPanel }).first(where: { $0.remoteZmxBinding == binding }),
+                   let surface = panel.surface.surface, ghostty_surface_process_exited(surface) {
+                    _ = dock.respawnZmxPanel(panelID: panel.id, create: created.contains(binding))
                 }
                 continue
             }

@@ -13,6 +13,7 @@ extension Workspace {
     func adoptZmxBinding(_ binding: RemoteZmxBinding, panel: TerminalPanel, setTitle: Bool = true) {
         panel.remoteZmxBinding = binding
         trackRemoteTerminalSurface(panel.id)
+        panel.surface.requestBackgroundSurfaceStartIfNeeded()
         if setTitle { _ = setPanelCustomTitle(panelId: panel.id, title: binding.session, source: .auto) }
     }
 

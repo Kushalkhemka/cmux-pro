@@ -11,7 +11,12 @@ extension GhosttyApp {
         surfaceId: UUID?,
         message: ghostty_surface_message_childexited_s
     ) -> Bool {
-        let keepSurfaceVisible = TerminalChildExitPolicy(
+        let keepsZmxMapping = performOnMain {
+            runtimeSurface.flatMap {
+                AppDelegate.shared?.remoteZmxController.binding(for: $0)
+            } != nil
+        }
+        let keepSurfaceVisible = keepsZmxMapping || TerminalChildExitPolicy(
             abnormalRuntimeMilliseconds: abnormalCommandExitRuntimeMilliseconds()
         ).shouldKeepSurfaceVisible(runtimeMilliseconds: message.timetime_ms)
 

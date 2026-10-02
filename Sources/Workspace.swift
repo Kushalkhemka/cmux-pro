@@ -9253,7 +9253,6 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
             isPinned: false
         )
         bindSurface(newTab.id, toPanelId: newPanel.id)
-        if let zmxBinding { _ = setPanelCustomTitle(panelId: newPanel.id, title: zmxBinding.session, source: .auto) }
         let previousFocusedPanelId = focusedPanelId
 
         // Capture the source terminal's hosted view before bonsplit mutates focusedPaneId,
@@ -9288,6 +9287,7 @@ final class Workspace: Identifiable, ObservableObject, FilePreviewTabMetadataHos
             newPanel.close()
             return nil
         }
+        if let zmxBinding { _ = setPanelCustomTitle(panelId: newPanel.id, title: zmxBinding.session, source: .auto) }
         publishCmuxSplitCreated(newPaneId, sourcePaneId: paneId, orientation: orientation, surfaceId: newPanel.id, kind: "terminal", origin: autoLayout ? "terminal_auto_layout" : "terminal_split", focused: focus)
 
 #if DEBUG
