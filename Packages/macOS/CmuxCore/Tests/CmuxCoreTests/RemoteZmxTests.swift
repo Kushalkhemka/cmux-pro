@@ -162,6 +162,26 @@ struct RemoteZmxTests {
         #expect(try run(RemoteZmxBinding(endpoint: endpoint, session: "missing").attachScript(create: false), in: dir).status == 44)
     }
 
+    @Test(arguments: [false, true])
+    func legacySuccessfulHelpDoesNotCountAsSessionExistence(existing: Bool) throws {
+        let dir = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let executable = dir.appendingPathComponent("zmx").path
+        try writeExecutable("""
+        #!/bin/sh
+        case "$1" in
+          get) printf 'zmx - session persistence\\nUsage: zmx <command> [args...]\\n';;
+          list) printf 'existing\\n';;
+          attach) touch attached; printf 'attached\\n';;
+        esac
+        """, path: executable)
+        let binding = try RemoteZmxBinding(endpoint: RemoteZmxEndpoint(destination: "host", executable: executable),
+            session: existing ? "existing" : "missing")
+        let result = try run(binding.attachScript(create: false), in: dir)
+        #expect(result.status == (existing ? 0 : 44))
+        #expect(FileManager.default.fileExists(atPath: dir.appendingPathComponent("attached").path) == existing)
+    }
+
     @Test func healthyConnectionResetsBackoffAndRetriesAreStaggered() throws {
         let dir = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
