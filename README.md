@@ -2,7 +2,7 @@
 <p align="center">A Ghostty-based macOS terminal with vertical tabs and notifications for AI coding agents</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="Download cmux for macOS" width="180" />
   </a>
 </p>
@@ -28,6 +28,22 @@
 <p align="center">
   <a href="https://cmux.com/docs/getting-started">Docs</a> · <a href="https://cmux.com/blog">Blog</a> · <a href="https://cmux.com/docs/changelog">Changelog</a> · <a href="https://cmux.com/community">Community</a>
 </p>
+
+## cmux-pro fork
+
+This fork adds [native remote zmx session mapping](docs/remote-zmx.md) to cmux.
+The app is named **cmux**. Download the Apple Silicon DMG from
+[cmux-pro releases](https://github.com/Kushalkhemka/cmux-pro/releases).
+The current fork build is locally signed, is not Apple notarized, and uses manual
+release updates. It preserves the native zmx workspace namespace.
+
+To package a verified arm64 Release build with the fork's display name:
+
+```sh
+python3 scripts/package-cmux-pro-release.py --app /path/to/verified-build.app \
+  --out /path/to/release-output --tag v0.64.25-pro.1 \
+  --native-source-commit b3a8a2758a3ea57a86a02bf63ced800ec882e505
+```
 
 ## Features
 
@@ -101,7 +117,7 @@ Sidebar shows git branch, linked PR status/number, working directory, listening 
 
 ### DMG (recommended)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="Download cmux for macOS" width="180" />
 </a>
 
@@ -499,7 +515,7 @@ cmux is free, open source, and always will be. If you'd like to support developm
 
 ### DMG (recommended)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="Download cmux for macOS" width="180" />
 </a>
 

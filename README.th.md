@@ -4,7 +4,7 @@
 <p align="center">เทอร์มินัล macOS ที่ใช้ Ghostty พร้อมแท็บแนวตั้งและการแจ้งเตือนสำหรับเอเจนต์เขียนโค้ด AI</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="ดาวน์โหลด cmux สำหรับ macOS" width="180" />
   </a>
 </p>
@@ -99,7 +99,7 @@
 
 ### DMG (แนะนำ)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="ดาวน์โหลด cmux สำหรับ macOS" width="180" />
 </a>
 

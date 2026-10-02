@@ -4,7 +4,7 @@
 <p align="center">تطبيق طرفية لنظام macOS مبني على Ghostty مع علامات تبويب عمودية وإشعارات لوكلاء البرمجة بالذكاء الاصطناعي</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="تحميل cmux لنظام macOS" width="180" />
   </a>
 </p>
@@ -99,7 +99,7 @@
 
 ### DMG (مستحسن)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="تحميل cmux لنظام macOS" width="180" />
 </a>
 

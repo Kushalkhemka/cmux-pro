@@ -2,7 +2,7 @@
 <p align="center">Một terminal macOS dựa trên Ghostty với tab dọc và thông báo cho các agent lập trình AI</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="Tải cmux cho macOS" width="180" />
   </a>
 </p>
@@ -97,7 +97,7 @@ Sidebar hiển thị nhánh git, trạng thái/số PR liên kết, thư mục l
 
 ### DMG (khuyến nghị)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="Tải cmux cho macOS" width="180" />
 </a>
 

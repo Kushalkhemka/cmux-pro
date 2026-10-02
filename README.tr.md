@@ -4,7 +4,7 @@
 <p align="center">AI kodlama ajanları için dikey sekmeler ve bildirimler içeren Ghostty tabanlı macOS terminali</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="macOS için cmux'u indir" width="180" />
   </a>
 </p>
@@ -99,7 +99,7 @@ Kenar çubuğu git dalını, bağlantılı PR durumunu/numarasını, çalışma 
 
 ### DMG (önerilen)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="macOS için cmux'u indir" width="180" />
 </a>
 

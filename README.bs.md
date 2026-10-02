@@ -4,7 +4,7 @@
 <p align="center">macOS terminal baziran na Ghostty sa vertikalnim tabovima i obavještenjima za AI agente za programiranje</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="Preuzmi cmux za macOS" width="180" />
   </a>
 </p>
@@ -99,7 +99,7 @@ Bočna traka prikazuje git granu, status/broj povezanog PR-a, radni direktorij, 
 
 ### DMG (preporučeno)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="Preuzmi cmux za macOS" width="180" />
 </a>
 

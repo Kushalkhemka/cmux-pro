@@ -4,7 +4,7 @@
 <p align="center">En Ghostty-basert macOS-terminal med vertikale faner og varsler for AI-kodeagenter</p>
 
 <p align="center">
-  <a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+  <a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
     <img src="./docs/assets/macos-badge.png" alt="Last ned cmux for macOS" width="180" />
   </a>
 </p>
@@ -99,7 +99,7 @@ Sidefeltet viser git-gren, tilknyttet PR-status/nummer, arbeidsmappe, lyttende p
 
 ### DMG (anbefalt)
 
-<a href="https://github.com/manaflow-ai/cmux/releases/latest/download/cmux-macos.dmg">
+<a href="https://github.com/Kushalkhemka/cmux-pro/releases/latest/download/cmux-macos.dmg">
   <img src="./docs/assets/macos-badge.png" alt="Last ned cmux for macOS" width="180" />
 </a>
 
