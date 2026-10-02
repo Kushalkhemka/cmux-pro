@@ -89,7 +89,7 @@ public struct RemoteZmxEndpoint: Codable, Hashable, Sendable {
     public var terminalSSHArguments: [String] {
         var arguments = ["-o", "RemoteCommand=none", "-o", "ControlMaster=no",
             "-o", "ControlPath=none", "-o", "ControlPersist=no",
-            "-o", "ConnectTimeout=10", "-o", "ServerAliveInterval=20",
+            "-o", "ConnectTimeout=10", "-o", "ServerAliveInterval=5",
             "-o", "ServerAliveCountMax=3"]
         if let port { arguments += ["-p", String(port)] }
         if let identityFile { arguments += ["-i", identityFile] }

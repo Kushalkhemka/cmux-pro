@@ -39,6 +39,7 @@ public struct RemoteZmxBinding: Codable, Hashable, Sendable {
     public func attachScript(create: Bool, command: String? = nil, workingDirectory: String? = nil) -> String {
         let q = RemoteZmxEndpoint.quote
         let check = """
+        if ! \(q(endpoint.executable)) get \(q(session)) >/dev/null 2>&1; then
         names=$(\(q(endpoint.executable)) list --short) || exit $?;
         found=0;
         while IFS= read -r name; do
@@ -47,7 +48,10 @@ public struct RemoteZmxBinding: Codable, Hashable, Sendable {
         $names
         CMUX_ZMX_NAMES
         [ "$found" = 1 ] || exit 44;
+        fi;
         """
+        // A successful read-only label probe checks only this daemon. Older zmx
+        // clients/daemons can fall back to discovery without creating a session.
         let directory = create ? workingDirectory.map { "cd -- \(q($0)) || exit $?; " } ?? "" : ""
         let argv = command.flatMap { create ? ["/bin/sh", "-lc", $0] : nil } ?? []
         let suffix = argv.isEmpty ? "" : " " + argv.map(q).joined(separator: " ")
@@ -64,7 +68,8 @@ public struct RemoteZmxBinding: Codable, Hashable, Sendable {
     ///   - workingDirectory: Remote directory for a new session, omitted on reconnect.
     ///   - reconnectMessage: Localized connection-loss message.
     ///   - missingMessage: Localized missing-session message.
-    /// - Returns: A command for a native Ghostty PTY, with retry delay capped at 15 seconds.
+    /// - Returns: A command for a native Ghostty PTY, with exponential retry delay
+    ///   capped at 15 seconds plus subsecond staggering across terminals.
     public func startupCommand(sshArguments: [String], sshExecutable: String = "/usr/bin/ssh", create: Bool = false,
                                reconnectMessage: String, missingMessage: String,
                                command: String? = nil, workingDirectory: String? = nil) -> String {
@@ -82,11 +87,16 @@ public struct RemoteZmxBinding: Codable, Hashable, Sendable {
         let initial = prefix + " " + q(remoteCommand(attachScript(create: create, command: command, workingDirectory: workingDirectory)))
         let script = """
         delay=1;
+        jitter=$(printf '%03d' "$((($$ * 137 % 997) + 1))");
+        started=$(date +%s);
         \(initial)
         rc=$?;
         while [ "$rc" = 255 ]; do
+          ended=$(date +%s);
+          if [ "$((ended - started))" -ge 30 ]; then delay=1; fi;
           printf '\\n%s\\n' \(q(reconnectMessage));
-          sleep "$delay";
+          sleep "$delay.$jitter";
+          started=$(date +%s);
           \(reconnect)
           rc=$?;
           delay=$((delay * 2));
