@@ -70,7 +70,8 @@ final class RemoteZmxController {
     /// Commits a discovered mapping atomically after SSH preflight.
     func mirrorDiscovered(endpoint: RemoteZmxEndpoint, discovered: [RemoteZmxBinding],
                           session: String?, create: Bool, target: RemoteTmuxAttachWindowTarget,
-                          activate: Bool, title: String?) throws -> RemoteZmxAttachOutcome {
+                          activate: Bool, title: String?, workspaceID: UUID? = nil,
+                          callerSurfaceID: UUID? = nil) throws -> RemoteZmxAttachOutcome {
         var bindings = discovered
         var created: Set<RemoteZmxBinding> = []
         if let session {

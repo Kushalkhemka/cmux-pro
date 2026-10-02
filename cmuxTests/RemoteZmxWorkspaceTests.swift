@@ -13,6 +13,86 @@ import Testing
 @MainActor @Suite(.serialized)
 struct RemoteZmxWorkspaceTests {
     @Test(arguments: [false, true])
+    func callerWorkspaceReceivesTabsAndReusesItsOwnMappings(existingInOtherWindow: Bool) throws {
+        let previousApp = AppDelegate.shared
+        let app = previousApp ?? AppDelegate()
+        let previousManager = app.tabManager
+        let manager = TabManager(autoWelcomeIfNeeded: false)
+        let window = app.registerMainWindowContextForTesting(tabManager: manager)
+        let otherManager = existingInOtherWindow ? TabManager(autoWelcomeIfNeeded: false) : manager
+        let otherWindow = existingInOtherWindow ? app.registerMainWindowContextForTesting(tabManager: otherManager) : window
+        AppDelegate.shared = app
+        app.tabManager = manager
+        defer {
+            for owner in [manager, otherManager] {
+                for workspace in Array(owner.tabs) {
+                    workspace.remoteZmxEndpoint = nil
+                    for id in Array(workspace.panels.keys) { _ = workspace.closePanel(id, force: true) }
+                }
+            }
+            if existingInOtherWindow { app.unregisterMainWindowContextForTesting(windowId: otherWindow) }
+            app.unregisterMainWindowContextForTesting(windowId: window)
+            app.tabManager = previousManager
+            AppDelegate.shared = previousApp
+        }
+        let caller = try #require(manager.selectedWorkspace)
+        let original = try #require(caller.panels.values.first as? TerminalPanel)
+        let endpoint = try RemoteZmxEndpoint(destination: "caller-routing.example.test")
+        let bindings = try ["agent-one", "agent-two"].map { try RemoteZmxBinding(endpoint: endpoint, session: $0) }
+        let other = otherManager.addWorkspace(title: "Existing mapping", initialTerminalCommand: "/usr/bin/true", select: false)
+        other.remoteZmxEndpoint = endpoint
+        let retained = try #require(other.panels.values.first as? TerminalPanel)
+        other.adoptZmxBinding(bindings[0], panel: retained)
+        let initialWorkspaceCount = app.surfaceCatalogWorkspaces().count
+        let controller = RemoteZmxController()
+        for _ in 0..<2 {
+            let outcome = try controller.mirrorDiscovered(endpoint: endpoint, discovered: bindings,
+                session: nil, create: false, target: .contextualWindow(window), activate: false,
+                title: nil, workspaceID: caller.id, callerSurfaceID: original.id)
+            guard case .mirrored(let mappedWindow, let mappings) = outcome else {
+                Issue.record("Expected mapped sessions"); return
+            }
+            #expect(mappedWindow == window)
+            #expect(mappings.count == 2)
+            #expect(mappings.allSatisfy { $0.workspaceID == caller.id })
+            #expect(caller.panels.count == 3)
+            #expect(Set(caller.panels.values.compactMap { ($0 as? TerminalPanel)?.remoteZmxBinding }) == Set(bindings))
+            #expect(caller.terminalPanel(for: original.id) === original)
+            #expect(other.terminalPanel(for: retained.id) === retained)
+            #expect(other.panels.count == 1)
+            #expect(app.surfaceCatalogWorkspaces().count == initialWorkspaceCount)
+        }
+    }
+
+    @Test func closedCallerWorkspaceDoesNotFallBackToAnotherWorkspace() throws {
+        let previousApp = AppDelegate.shared
+        let app = previousApp ?? AppDelegate()
+        let previousManager = app.tabManager
+        let manager = TabManager(autoWelcomeIfNeeded: false)
+        let window = app.registerMainWindowContextForTesting(tabManager: manager)
+        AppDelegate.shared = app
+        app.tabManager = manager
+        defer {
+            for workspace in Array(manager.tabs) {
+                workspace.remoteZmxEndpoint = nil
+                for id in Array(workspace.panels.keys) { _ = workspace.closePanel(id, force: true) }
+            }
+            app.unregisterMainWindowContextForTesting(windowId: window)
+            app.tabManager = previousManager
+            AppDelegate.shared = previousApp
+        }
+        let before = manager.tabs.map(\.id)
+        let endpoint = try RemoteZmxEndpoint(destination: "closed-caller.example.test")
+        let binding = try RemoteZmxBinding(endpoint: endpoint, session: "one")
+        #expect(throws: RemoteTmuxError.self) {
+            try RemoteZmxController().mirrorDiscovered(endpoint: endpoint, discovered: [binding],
+                session: nil, create: false, target: .contextualWindow(window), activate: false,
+                title: nil, workspaceID: UUID())
+        }
+        #expect(manager.tabs.map(\.id) == before)
+    }
+
+    @Test(arguments: [false, true])
     func requestedDockMappingWinsOverOriginalWorkspace(otherWindow: Bool) throws {
         let previousApp = AppDelegate.shared
         let app = previousApp ?? AppDelegate()
