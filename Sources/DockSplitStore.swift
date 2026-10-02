@@ -471,6 +471,9 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
                 surfaceIds: [surfaceId]
             )
         }
+        if let terminal = panels[panelId] as? TerminalPanel, terminal.remoteZmxBinding != nil {
+            terminal.surface.requestBackgroundSurfaceStartIfNeeded()
+        }
     }
 
     /// Removes one Dock tab mapping, promoting a remaining alias when necessary.
@@ -634,6 +637,10 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
         guard !isRetired, kind != .browser || acceptsUnownedBrowserURL(initialRequest?.url ?? url) else { return nil }
         ensureLoaded()
         let source = resolveSourcePanelId(sourcePanelId, preferredPaneId: paneId)
+        let zmxBinding = kind == .terminal && tmuxStartCommand == nil && startupRestoreAgent == nil
+            ? source.flatMap { (panels[$0] as? TerminalPanel)?.remoteZmxBinding?.endpoint }
+                .flatMap { RemoteZmxLaunch.newBinding(endpoint: $0, scopeID: workspaceId) }
+            : nil
         let resolvedBrowserProfileID = kind == .browser
             ? resolvedNewBrowserProfileID(
                 preferredProfileID: preferredProfileID,
@@ -642,18 +649,22 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
             : nil
         guard let panel = makePanel(
             kind: kind,
-            command: command,
+            command: zmxBinding.map {
+                RemoteZmxLaunch.command($0, create: true, command: command,
+                    workingDirectory: workingDirectory ?? source.flatMap { (panels[$0] as? TerminalPanel)?.surface.reportedWorkingDirectory })
+            } ?? command,
             url: url,
             initialRequest: initialRequest,
             configTemplate: kind == .terminal
                 ? inheritedTerminalFontSizeConfig(sourcePanelId: source)
                 : nil,
             environment: environment,
-            workingDirectory: resolvedTerminalStartupWorkingDirectory(
+            workingDirectory: zmxBinding != nil ? FileManager.default.homeDirectoryForCurrentUser.path : resolvedTerminalStartupWorkingDirectory(
                 kind: kind,
                 requestedWorkingDirectory: workingDirectory,
                 sourcePanelId: source
             ),
+            remoteZmxBinding: zmxBinding,
             tmuxStartCommand: tmuxStartCommand,
             initialInput: initialInput,
             startupRestoreAgent: startupRestoreAgent,
@@ -671,6 +682,7 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
         guard let tabId = attachPanelAsTab(panel, kind: kind, title: panel.displayTitle, inPane: paneId) else {
             return nil
         }
+        if let zmxBinding { _ = setDockPanelCustomTitle(panelId: panel.id, title: zmxBinding.session) }
         commitStartupRestoreIfNeeded(
             panel: panel,
             snapshot: startupRestoreAgent,
@@ -717,6 +729,10 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
         guard !isRetired, kind != .browser || acceptsUnownedBrowserURL(initialRequest?.url ?? url) else { return nil }
         ensureLoaded()
         let source = resolveSourcePanelId(sourcePanelId)
+        let zmxBinding = kind == .terminal && tmuxStartCommand == nil && startupRestoreAgent == nil
+            ? source.flatMap { (panels[$0] as? TerminalPanel)?.remoteZmxBinding?.endpoint }
+                .flatMap { RemoteZmxLaunch.newBinding(endpoint: $0, scopeID: workspaceId) }
+            : nil
         let resolvedBrowserProfileID = kind == .browser
             ? resolvedNewBrowserProfileID(
                 preferredProfileID: preferredProfileID,
@@ -725,18 +741,22 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
             : nil
         guard let panel = makePanel(
             kind: kind,
-            command: command,
+            command: zmxBinding.map {
+                RemoteZmxLaunch.command($0, create: true, command: command,
+                    workingDirectory: workingDirectory ?? source.flatMap { (panels[$0] as? TerminalPanel)?.surface.reportedWorkingDirectory })
+            } ?? command,
             url: url,
             initialRequest: initialRequest,
             configTemplate: kind == .terminal
                 ? inheritedTerminalFontSizeConfig(sourcePanelId: source)
                 : nil,
             environment: environment,
-            workingDirectory: resolvedTerminalStartupWorkingDirectory(
+            workingDirectory: zmxBinding != nil ? FileManager.default.homeDirectoryForCurrentUser.path : resolvedTerminalStartupWorkingDirectory(
                 kind: kind,
                 requestedWorkingDirectory: workingDirectory,
                 sourcePanelId: source
             ),
+            remoteZmxBinding: zmxBinding,
             tmuxStartCommand: tmuxStartCommand,
             initialInput: initialInput,
             startupRestoreAgent: startupRestoreAgent,
@@ -757,6 +777,7 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
                   let tabId = attachPanelAsTab(panel, kind: kind, title: panel.displayTitle, inPane: rootPane) else {
                 return nil
             }
+            if let zmxBinding { _ = setDockPanelCustomTitle(panelId: panel.id, title: zmxBinding.session) }
             commitStartupRestoreIfNeeded(
                 panel: panel,
                 snapshot: startupRestoreAgent,
@@ -798,6 +819,7 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
         }
         installSubscription(for: panel)
         applyVisibility(to: panel)
+        if let zmxBinding { _ = setDockPanelCustomTitle(panelId: panel.id, title: zmxBinding.session) }
         commitStartupRestoreIfNeeded(
             panel: panel,
             snapshot: startupRestoreAgent,
@@ -1005,6 +1027,7 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
         configTemplate: CmuxSurfaceConfigTemplate? = nil,
         environment: [String: String],
         workingDirectory: String,
+        remoteZmxBinding: RemoteZmxBinding? = nil,
         tmuxStartCommand: String? = nil,
         initialInput: String? = nil,
         startupRestoreAgent: SessionRestorableAgentSnapshot? = nil,
@@ -1026,6 +1049,7 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
                 workingDirectory: workingDirectory,
                 environment: environment,
                 configTemplate: configTemplate,
+                remoteZmxBinding: remoteZmxBinding,
                 tmuxStartCommand: tmuxStartCommand,
                 initialInput: initialInput,
                 startupRestoreAgent: startupRestoreAgent,
@@ -1084,6 +1108,7 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
         workingDirectory: String,
         environment: [String: String],
         configTemplate: CmuxSurfaceConfigTemplate?,
+        remoteZmxBinding: RemoteZmxBinding? = nil,
         tmuxStartCommand: String? = nil,
         initialInput: String? = nil,
         startupRestoreAgent: SessionRestorableAgentSnapshot? = nil,
@@ -1103,21 +1128,29 @@ final class DockSplitStore: BonsplitDelegate, FilePreviewTabMetadataHost {
             initialCommand = nil
         }
 
-        return TerminalPanel(
+        var resolvedConfig = configTemplate
+        if remoteZmxBinding != nil {
+            resolvedConfig = resolvedConfig ?? CmuxSurfaceConfigTemplate()
+            resolvedConfig?.waitAfterCommand = true
+        }
+        let panel = TerminalPanel(
             workspaceId: workspaceId,
             context: GHOSTTY_SURFACE_CONTEXT_SPLIT,
-            configTemplate: configTemplate,
+            configTemplate: resolvedConfig,
             workingDirectory: workingDirectory,
             initialCommand: initialCommand,
             tmuxStartCommand: tmuxStartCommand,
             initialInput: initialInput,
             initialEnvironmentOverrides: resolvedEnvironment,
             focusPlacement: .rightSidebarDock,
+            isRemoteTerminal: remoteZmxBinding != nil,
             runtimeSpawnPolicy: terminalStartupRestoreCoordinator.runtimeSpawnPolicy(
                 requestedPolicy: .immediate,
                 willRunStartupInput: startupRestoreAgent != nil && initialInput != nil
             )
         )
+        panel.remoteZmxBinding = remoteZmxBinding
+        return panel
     }
 
     private func commitStartupRestoreIfNeeded(

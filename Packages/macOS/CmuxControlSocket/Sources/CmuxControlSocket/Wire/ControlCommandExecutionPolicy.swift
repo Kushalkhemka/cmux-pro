@@ -226,6 +226,7 @@ public enum ControlCommandExecutionPolicy: Sendable, Equatable {
         // mutation takes one synchronous controlResolveOnMain hop.
         "workspace.remote.terminal_session_launching",
         "workspace.remote.terminal_session_connected",
+        "remote.zmx.sessions", "remote.zmx.mirror", "remote.zmx.window",
         "remote.tmux.sessions",
         "remote.tmux.attach",
         "remote.tmux.detach",

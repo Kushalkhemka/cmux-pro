@@ -1918,6 +1918,8 @@ class TerminalController {
             return v2Result(id: request.id, v2WorkspaceRemotePTYBridge(params: request.params))
         case "workspace.remote.pty_resize":
             return v2Result(id: request.id, v2WorkspaceRemotePTYResize(params: request.params))
+        case "remote.zmx.sessions", "remote.zmx.mirror", "remote.zmx.window":
+            return v2RemoteZmx(id: request.id, method: request.method, params: request.params)
         case "remote.tmux.sessions":
             return v2RemoteTmuxSessions(id: request.id, params: request.params)
         case "remote.tmux.attach":

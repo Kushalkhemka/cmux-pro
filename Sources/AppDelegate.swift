@@ -571,6 +571,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     var aboutTitlebarDebugStore: AboutTitlebarDebugStore { debugWindowsCoordinator.aboutTitlebarStore }
     /// Coordinates remote tmux (`ssh … tmux -CC`) mirroring; composition-root owned.
     let remoteTmuxController = RemoteTmuxController()
+    let remoteZmxController = RemoteZmxController()
     lazy var sshTuiWorkspaceCoordinator = SSHTuiWorkspaceCoordinator(
         catalog: SurfaceCatalog.shared, clientURL: { CloudTuiClientPaths.clientURL() }, paths: CloudTuiClientPaths()
     )
@@ -2515,6 +2516,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         sentryStopMemoryContextRefresh()
         // Plain quit detaches local ssh clients; explicit close already killed marked sessions.
         remoteTmuxController.detachAll()
+        remoteZmxController.detachAll()
         // Best-effort presence goodbye; unclean exits are covered by the
         // service's missed-heartbeat timeout.
         PresenceHeartbeatClient.shared.appWillTerminate()

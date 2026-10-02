@@ -18,6 +18,20 @@ struct SessionSnapshotImportTrustTests {
     private static let fileImport = ControlSessionImportSource.file(path: "/tmp/shared-session.json")
     private static let channelImport = ControlSessionImportSource.channel("nightly")
 
+    @Test func zmxBindingsAreKeptForChannelRestoreAndDroppedForFileImport() throws {
+        let endpoint = try RemoteZmxEndpoint(destination: "dev@example.com")
+        let binding = try RemoteZmxBinding(endpoint: endpoint, session: "agent")
+        var original = Self.snapshot(terminal: SessionTerminalPanelSnapshot(remoteZmxBinding: binding))
+        original.windows[0].tabManager.workspaces[0].remoteZmxEndpoint = endpoint
+        let (trusted, _) = SessionSnapshotImportTrust.snapshotForRestore(original, source: Self.channelImport)
+        #expect(trusted.windows[0].tabManager.workspaces[0].panels[0].terminal?.remoteZmxBinding == binding)
+        let (untrusted, report) = SessionSnapshotImportTrust.snapshotForRestore(original, source: Self.fileImport)
+        #expect(untrusted.windows[0].tabManager.workspaces[0].remoteZmxEndpoint == nil)
+        #expect(untrusted.windows[0].tabManager.workspaces[0].panels[0].terminal?.remoteZmxBinding == nil)
+        #expect(report.heldBackResumeCount == 1)
+        #expect(report.droppedRemoteWorkspaceCount == 1)
+    }
+
     // MARK: - Path import holds back custom resume commands
 
     @Test("a file import keeps custom agents, bindings and tmux commands for manual restore only")

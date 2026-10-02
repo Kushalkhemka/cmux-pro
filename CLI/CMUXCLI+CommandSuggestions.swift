@@ -214,6 +214,7 @@ extension CMUXCLI {
         "ssh-session-end",
         "ssh-session-list",
         "ssh-tmux",
+        "ssh-zmx",
         "sudo",
         "surface",
         "surface-health",

@@ -363,7 +363,8 @@ extension DockSplitStore {
                 isRemoteTerminal: transfer?.isRemoteTerminal ?? false,
                 remotePTYSessionID: transfer?.remotePTYSessionID,
                 wasAgentRunning: localTmuxStartCommand == nil ? agentWasRunning : nil,
-                hasReceivedExplicitInput: terminal.hasReceivedExplicitInput
+                hasReceivedExplicitInput: terminal.hasReceivedExplicitInput,
+                remoteZmxBinding: terminal.remoteZmxBinding
             )
             browserSnapshot = nil
             filePreviewSnapshot = nil

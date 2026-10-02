@@ -7043,6 +7043,8 @@ struct CMUXCLI {
                 idFormat: idFormat,
                 windowOverride: windowId
             )
+        case "ssh-zmx":
+            try runRemoteZmx(commandArgs: commandArgs, client: client, jsonOutput: jsonOutput)
         case "ssh-tmux":
             try runRemoteTmux(
                 commandArgs: commandArgs,
@@ -12019,6 +12021,63 @@ struct CMUXCLI {
             jsonOutput: jsonOutput,
             idFormat: idFormat
         )
+    }
+
+    private func runRemoteZmx(commandArgs: [String], client: SocketClient, jsonOutput: Bool) throws {
+        let invalid = String(localized: "cli.sshZmx.invalidArguments", defaultValue: "Invalid arguments. Run cmux ssh-zmx --help for usage.")
+        var params: [String: Any] = [:]
+        var focus: Bool?
+        var newWindow = false
+        var listOnly = false
+        var index = 0
+        let options = ["--port": "port", "--identity": "identity_file", "--name": "workspace_name",
+                       "--session": "session", "--zmx-path": "zmx_path", "--zmx-dir": "zmx_dir"]
+        while index < commandArgs.count {
+            let arg = commandArgs[index]
+            if let key = options[arg] {
+                guard index + 1 < commandArgs.count, !commandArgs[index + 1].hasPrefix("-") else {
+                    throw CLIError(message: invalid)
+                }
+                let value = commandArgs[index + 1]
+                if key == "port" {
+                    guard let port = Int(value), (1...65535).contains(port) else { throw CLIError(message: invalid) }
+                    params[key] = port
+                } else { params[key] = value }
+                index += 2
+            } else if arg == "--new-window" { newWindow = true; index += 1
+            } else if arg == "--list" { listOnly = true; index += 1
+            } else if arg == "--create" { params["create"] = true; index += 1
+            } else if arg == "--no-focus" || arg == "--focus" || arg.hasPrefix("--focus=") {
+                let flag = try Self.openFocusFlag(in: commandArgs, at: index, command: "ssh-zmx")
+                focus = flag?.focus
+                index += flag?.consumed ?? 1
+            } else {
+                guard !arg.hasPrefix("-"), params["host"] == nil else { throw CLIError(message: invalid) }
+                params["host"] = arg; index += 1
+            }
+        }
+        guard let destination = params["host"] as? String,
+              params["create"] == nil || params["session"] != nil else { throw CLIError(message: invalid) }
+        params["activate"] = focus ?? Self.defaultFocusForUserOpen()
+        if !newWindow { try applyWindowOrCallerContext(to: &params, client: client, windowRaw: nil) }
+        let method = listOnly ? "remote.zmx.sessions" : newWindow ? "remote.zmx.window" : "remote.zmx.mirror"
+        var authenticated = false
+        while true {
+            let result = try client.sendV2(method: method, params: params, responseTimeout: 75)
+            if result["auth_required"] as? Bool == true {
+                guard !authenticated, let argv = result["ssh_argv"] as? [String] else { throw CLIError(message: invalid) }
+                try runInteractiveAuthSSH(sshArgv: argv, destination: destination)
+                authenticated = true
+                continue
+            }
+            if jsonOutput { print(jsonString(result))
+            } else if listOnly {
+                for entry in result["sessions"] as? [[String: Any]] ?? [] { print(entry["name"] as? String ?? "") }
+            } else {
+                print("OK host=\(destination) sessions=\((result["sessions"] as? [Any])?.count ?? 0)")
+            }
+            return
+        }
     }
 
     /// Mirrors a remote host's tmux sessions; interactive SSH authentication runs
@@ -19978,6 +20037,9 @@ struct CMUXCLI {
             return Self.moshCommandUsage
         case "mosh-tmux":
             return Self.moshTmuxCommandUsage
+        case "ssh-zmx":
+            return "Usage: cmux ssh-zmx <destination> [--port <n>] [--identity <path>] [--name <title>] [--session <name>] [--create] [--zmx-path <path>] [--zmx-dir <path>] [--list] [--new-window] [--focus | --no-focus]\n\n" +
+                String(localized: "cli.help.ssh-zmx", defaultValue: "Map remote zmx sessions to native tabs. Tabs and splits create independent sessions; closing detaches. Layout and session mappings survive relaunch. SSH interruptions reconnect automatically. Repeat the command to discover additional sessions. --create requires --session. --list discovers without opening terminals.")
         case "ssh-tmux":
             let help = String(localized: "cli.help.ssh-tmux", defaultValue: """
             Usage: cmux ssh-tmux <destination> [--port <n>] [--identity <path>] [--name <title>] [--no-focus]

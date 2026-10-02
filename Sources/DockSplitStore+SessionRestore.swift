@@ -178,7 +178,7 @@ extension DockSplitStore {
             return restoredPanelId
         }
         if sourceWorkspaceId != nil,
-           snapshot.terminal?.isRemoteTerminal == true {
+           snapshot.terminal?.isRemoteTerminal == true, snapshot.terminal?.remoteZmxBinding == nil {
             return nil
         }
         switch snapshot.type {
@@ -239,6 +239,23 @@ extension DockSplitStore {
             workspaceId: workspaceId
         )
         guard let terminalSnapshot = snapshot.terminal else { return nil }
+        if let binding = terminalSnapshot.remoteZmxBinding {
+            let surfaceID = GhosttyApp.terminalSurfaceRegistry.surface(id: snapshot.id) == nil ? snapshot.id : UUID()
+            var config = TerminalFontSizeCreationPolicy.sessionRestore(overrideBasePoints: terminalSnapshot.fontSize,
+                representedChangeTokens: Set(terminalSnapshot.fontSizeChangeTokens ?? [])).applying(to: nil) ?? CmuxSurfaceConfigTemplate()
+            config.waitAfterCommand = true
+            let terminal = TerminalPanel(id: surfaceID, workspaceId: workspaceId,
+                context: GHOSTTY_SURFACE_CONTEXT_SPLIT, configTemplate: config,
+                initialCommand: RemoteZmxLaunch.command(binding), focusPlacement: .rightSidebarDock, isRemoteTerminal: true)
+            terminal.remoteZmxBinding = binding
+            terminal.restoreExplicitInputState(terminalSnapshot.hasReceivedExplicitInput ?? false)
+            terminal.restoreSessionTextBoxDraft(terminalSnapshot.textBoxDraft)
+            if let stableID = snapshot.stableSurfaceId, !excludingStableIdentities.contains(stableID) {
+                terminal.adoptStableSurfaceId(stableID)
+            }
+            guard attachSessionRestoredPanel(terminal, snapshot: snapshot, inPane: paneId) != nil else { return nil }
+            return terminal.id
+        }
         let policy = Workspace.makeSessionRestorePolicyService()
         let localTmuxStartCommand = policy.localTmuxStartCommand(terminalSnapshot.tmuxStartCommand)
         let restorableAgent = localTmuxStartCommand == nil

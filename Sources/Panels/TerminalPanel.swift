@@ -1,4 +1,5 @@
 import CmuxCloud
+import CmuxCore
 import Foundation
 import CmuxTerminalCore
 import Combine
@@ -24,6 +25,8 @@ final class TerminalPanel: Panel, ObservableObject {
 
     /// The underlying terminal surface
     let surface: TerminalSurface
+    /// Travels with the panel across workspace and Dock transfers.
+    var remoteZmxBinding: RemoteZmxBinding?
     private(set) var hasReceivedExplicitInput = false
 
     func recordExplicitInput() {
