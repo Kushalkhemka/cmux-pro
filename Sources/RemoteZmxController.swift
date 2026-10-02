@@ -96,10 +96,13 @@ final class RemoteZmxController {
             return session == nil || binding.session == session
         }
         let requestedOwner = session.flatMap { _ in allWorkspaces.first { $0.panels.values.contains(where: matches) } }
+        let requestedDock = session.flatMap { _ in stores.first { $0.panels.values.contains(where: matches) } }
         let existing = requestedOwner ?? allWorkspaces.first { $0.remoteZmxEndpoint == endpoint }
             ?? allWorkspaces.first { $0.panels.values.contains(where: matches) }
         let existingDock = stores.first { $0.panels.values.contains(where: matches) }
-        let existingManager = existing?.owningTabManager ?? existingDock.flatMap { app.dockReferenceTabManager(for: $0) }
+        let existingManager = requestedOwner?.owningTabManager
+            ?? requestedDock.flatMap { app.dockReferenceTabManager(for: $0) }
+            ?? existing?.owningTabManager ?? existingDock.flatMap { app.dockReferenceTabManager(for: $0) }
         let existingWindow = existingManager.flatMap { app.windowId(for: $0) }
         let activeWindow = app.tabManager.flatMap { app.windowId(for: $0) }
         var bootstrap: Workspace?
@@ -128,10 +131,8 @@ final class RemoteZmxController {
                 if let owner = allWorkspaces.first(where: { w in
                     w.panels.values.contains { ($0 as? TerminalPanel)?.remoteZmxBinding == binding }
                 }), let panel = owner.panels.values.compactMap({ $0 as? TerminalPanel }).first(where: { $0.remoteZmxBinding == binding }),
-                   let surface = panel.surface.surface, ghostty_surface_process_exited(surface),
-                   let replacement = owner.respawnTerminalSurface(panelId: panel.id,
-                    command: RemoteZmxLaunch.command(binding, create: created.contains(binding)), focus: false) {
-                    owner.adoptZmxBinding(binding, panel: replacement, setTitle: false)
+                   let surface = panel.surface.surface, ghostty_surface_process_exited(surface) {
+                    _ = owner.reattachZmxPanel(panelID: panel.id, create: created.contains(binding), focus: false)
                 } else if let dock = stores.first(where: { dock in
                     dock.panels.values.contains { ($0 as? TerminalPanel)?.remoteZmxBinding == binding }
                 }), let panel = dock.panels.values.compactMap({ $0 as? TerminalPanel }).first(where: { $0.remoteZmxBinding == binding }),
@@ -163,7 +164,10 @@ final class RemoteZmxController {
             }
         }
         if let bootstrap, manager.tabs.count > 1 { manager.closeWorkspace(bootstrap, recordHistory: false) }
-        if activate, let workspace {
+        if activate, let requestedDock, let panel = requestedDock.panels.values.first(where: matches) {
+            requestedDock.focusPanel(panel.id)
+            _ = app.focusMainWindow(windowId: windowID)
+        } else if activate, let workspace {
             manager.selectWorkspace(workspace)
             if let session, let panel = workspace.panels.values.first(where: {
                 ($0 as? TerminalPanel)?.remoteZmxBinding?.session == session &&

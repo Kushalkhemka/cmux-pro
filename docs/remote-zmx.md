@@ -33,7 +33,9 @@ live mappings are reused, including terminals moved to another workspace.
 SSH transport failures reconnect with backoff from one to fifteen seconds.
 Successful detach, a shell exiting, and remote command errors stop the loop.
 The terminal remains open to show the result. A manual terminal respawn with
-no command reconnects its saved zmx session.
+no command reconnects its saved zmx session. Supplying a replacement command or
+working directory to respawn is rejected; use a new terminal tab or split to
+start another remote process.
 
 ## SSH and namespaces
 

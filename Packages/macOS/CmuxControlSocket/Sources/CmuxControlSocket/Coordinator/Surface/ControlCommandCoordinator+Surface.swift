@@ -446,9 +446,9 @@ extension ControlCommandCoordinator {
             return .err(code: "unavailable", message: "TabManager not available", data: nil)
         }
 
-        let command = optionalTrimmedRawString(params, "command")
+        let explicitCommand = optionalTrimmedRawString(params, "command")
             ?? optionalTrimmedRawString(params, "initial_command")
-            ?? "exec ${SHELL:-/bin/zsh} -l"
+        let command = explicitCommand ?? "exec ${SHELL:-/bin/zsh} -l"
         let tmuxStartCommand = optionalTrimmedRawString(params, "tmux_start_command") ?? command
         let workingDirectory = optionalTrimmedRawString(params, "working_directory")
 
@@ -470,7 +470,8 @@ extension ControlCommandCoordinator {
             hasSurfaceIDParam: hasSurfaceIDParam,
             requestedSurfaceID: requestedSurfaceID,
             hasFocusParam: hasFocusParam,
-            requestedFocus: bool(params, "focus") ?? false
+            requestedFocus: bool(params, "focus") ?? false,
+            hasExplicitCommand: explicitCommand != nil || optionalTrimmedRawString(params, "tmux_start_command") != nil
         )
 
         let resolution = context?.controlSurfaceRespawn(routing: routing, inputs: inputs)

@@ -17,6 +17,17 @@ extension Workspace {
         if setTitle { _ = setPanelCustomTitle(panelId: panel.id, title: binding.session, source: .auto) }
     }
 
+    /// Reattaches the persistent process while retaining native panel and tab identity.
+    @discardableResult
+    func reattachZmxPanel(panelID: UUID, create: Bool = false, focus: Bool? = nil) -> TerminalPanel? {
+        guard let binding = terminalPanel(for: panelID)?.remoteZmxBinding,
+              let replacement = respawnTerminalSurface(panelId: panelID,
+                  command: RemoteZmxLaunch.command(binding, create: create), focus: focus,
+                  waitAfterCommand: true, allowTextBoxFocusDefault: focus == true) else { return nil }
+        adoptZmxBinding(binding, panel: replacement, setTitle: false)
+        return replacement
+    }
+
     /// zmx supplies screen/scrollback state itself; local replay and agent resume must not run too.
     func restoreZmxPanel(_ snapshot: SessionPanelSnapshot, inPane pane: PaneID) -> UUID? {
         guard let binding = snapshot.terminal?.remoteZmxBinding else { return nil }

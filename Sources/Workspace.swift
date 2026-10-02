@@ -1567,6 +1567,11 @@ extension Workspace {
                inPane: paneId
            ) {
             return restoredCloudPanelID }
+        if snapshot.type == .terminal, snapshot.terminal?.remoteZmxBinding != nil {
+            guard let panelID = restoreZmxPanel(snapshot, inPane: paneId) else { return nil }
+            applySessionPanelMetadata(snapshot, toPanelId: panelID)
+            return panelID
+        }
         if usesSSHTui, remoteConfiguration?.preserveAfterTerminalExit == true, snapshot.type == .terminal {
             return restoreDeviceDisplayPanel(snapshot, in: paneId)
         }
@@ -1574,11 +1579,6 @@ extension Workspace {
             (snapshot.directoryIsTrustedRemoteReport != true &&
                 (snapshot.directoryRequiresRemoteTrust == true ||
                     restoresLegacyRemoteDirectoryWithoutProvenance(snapshot)))
-        if snapshot.type == .terminal, snapshot.terminal?.remoteZmxBinding != nil {
-            guard let panelID = restoreZmxPanel(snapshot, inPane: paneId) else { return nil }
-            applySessionPanelMetadata(snapshot, toPanelId: panelID)
-            return panelID
-        }
         switch snapshot.type {
         case .terminal:
             if restoresDeviceProjection {
