@@ -1,5 +1,6 @@
 import Bonsplit
 import CmuxCore
+import CmuxControlSocket
 import Foundation
 import Testing
 
@@ -11,6 +12,67 @@ import Testing
 
 @MainActor @Suite(.serialized)
 struct RemoteZmxWorkspaceTests {
+    @Test func movedMappingRestoresBeforeManagedSSHWorkspaceRouting() throws {
+        let source = Workspace(title: "zmx", initialTerminalCommand: "/usr/bin/true")
+        let endpoint = try RemoteZmxEndpoint(destination: "original.example.test")
+        let first = try #require(source.panels.values.first as? TerminalPanel)
+        let binding = try RemoteZmxBinding(endpoint: endpoint, session: "moved")
+        source.adoptZmxBinding(binding, panel: first)
+        let transfer = try #require(source.detachSurface(panelId: first.id))
+        let destination = Workspace(title: "SSH", initialTerminalCommand: "/usr/bin/true")
+        destination.remoteConfiguration = WorkspaceRemoteConfiguration(
+            destination: "other.example.test", port: nil, identityFile: nil, sshOptions: [],
+            localProxyPort: nil, relayPort: nil, relayID: nil, relayToken: nil,
+            localSocketPath: nil, terminalStartupCommand: nil, preserveAfterTerminalExit: true)
+        #expect(destination.usesSSHTui)
+        let pane = try #require(destination.bonsplitController.allPaneIds.first)
+        let movedID = try #require(destination.attachDetachedSurface(transfer, inPane: pane, focus: false))
+        let snapshot = try #require(destination.sessionSnapshot(includeScrollback: false).panels.first { $0.id == movedID })
+        let restoredID = try #require(destination.createPanel(from: snapshot, inPane: pane,
+            snapshotWorkspaceId: destination.id, shouldRestoreSingleDefaultCloudTerminal: false))
+        let restored = try #require(destination.terminalPanel(for: restoredID))
+        #expect(restored.remoteZmxBinding == binding)
+        #expect(restored.surface.debugInitialCommand() != nil)
+        destination.remoteConfiguration = nil
+        for workspace in [source, destination] {
+            for id in Array(workspace.panels.keys) { _ = workspace.closePanel(id, force: true) }
+        }
+    }
+
+    @Test func publicCommandlessRespawnReattachesTheMappedSession() throws {
+        let previousApp = AppDelegate.shared
+        let app = previousApp ?? AppDelegate()
+        let previousManager = app.tabManager
+        let manager = TabManager(autoWelcomeIfNeeded: false)
+        let windowID = app.registerMainWindowContextForTesting(tabManager: manager)
+        AppDelegate.shared = app
+        app.tabManager = manager
+        defer {
+            for workspace in Array(manager.tabs) {
+                for id in Array(workspace.panels.keys) { _ = workspace.closePanel(id, force: true) }
+            }
+            app.unregisterMainWindowContextForTesting(windowId: windowID)
+            app.tabManager = previousManager
+            AppDelegate.shared = previousApp
+        }
+        let workspace = try #require(manager.selectedWorkspace)
+        let terminal = try #require(workspace.panels.values.first as? TerminalPanel)
+        let binding = try RemoteZmxBinding(endpoint: RemoteZmxEndpoint(destination: "respawn.example.test"), session: "retained")
+        workspace.adoptZmxBinding(binding, panel: terminal)
+        let tabID = workspace.surfaceIdFromPanelId(terminal.id)
+        let result = ControlCommandCoordinator(context: TerminalController.shared).handle(ControlRequest(
+            id: .int(1), method: "surface.respawn", params: [
+                "workspace_id": .string(workspace.id.uuidString),
+                "surface_id": .string(terminal.id.uuidString), "focus": .bool(false),
+            ]))
+        guard case .ok = result else { Issue.record("Expected reattachment: \(result)"); return }
+        let replacement = try #require(workspace.terminalPanel(for: terminal.id))
+        #expect(replacement !== terminal)
+        #expect(replacement.remoteZmxBinding == binding)
+        #expect(replacement.stableSurfaceId == terminal.stableSurfaceId)
+        #expect(workspace.surfaceIdFromPanelId(terminal.id) == tabID)
+    }
+
     @Test func childExitKeepsTheMappedTabForReattachment() throws {
         let manager = TabManager()
         let workspace = manager.addWorkspace(initialTerminalCommand: "/usr/bin/true", select: false)
@@ -53,6 +115,8 @@ struct RemoteZmxWorkspaceTests {
         #expect(bindings.count == 3)
         #expect(Set(bindings).count == 3)
         #expect(bindings.allSatisfy { $0.endpoint == endpoint })
+        let splitTabID = try #require(workspace.surfaceIdFromPanelId(split.id))
+        #expect(workspace.bonsplitController.tab(splitTabID)?.title == split.remoteZmxBinding?.session)
         #expect(!workspace.panelNeedsConfirmClose(panelId: first.id))
         _ = workspace.setPanelCustomTitle(panelId: tab.id, title: "My agent")
         workspace.setPanelPinned(panelId: tab.id, pinned: true)
@@ -111,6 +175,13 @@ struct RemoteZmxWorkspaceTests {
         restored.restoreSessionSnapshot(saved)
         #expect(Set(restored.panels.values.compactMap { ($0 as? TerminalPanel)?.remoteZmxBinding }) == Set(bindings))
         #expect(restored.bonsplitController.allPaneIds.count == dock.bonsplitController.allPaneIds.count)
+        let previousTab = try #require(dock.surfaceId(forPanelId: movedID))
+        let revived = try #require(dock.respawnZmxPanel(panelID: movedID))
+        #expect(revived.id == movedID)
+        #expect(revived.stableSurfaceId == terminal.stableSurfaceId)
+        #expect(revived.remoteZmxBinding == bindings.first)
+        #expect(dock.surfaceId(forPanelId: movedID) == previousTab)
+        #expect(Set(dock.panels.values.compactMap { ($0 as? TerminalPanel)?.remoteZmxBinding }) == Set(bindings))
         dock.closeAllPanels()
         restored.closeAllPanels()
         for id in Array(workspace.panels.keys) { _ = workspace.closePanel(id, force: true) }
