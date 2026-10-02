@@ -74,7 +74,10 @@ The local v2 methods are `remote.zmx.sessions`, `remote.zmx.mirror`, and
 `zmx_path`, and `zmx_dir`. Mirror/window also accept `session`, `create`,
 `activate`, `workspace_name`, and window routing. `remote.zmx.mirror` uses
 `workspace_id` as the destination and `surface_id` to select the caller’s pane.
-A closed destination causes an error rather than routing to another workspace.
+With `caller_context: true`, the surface’s current owner takes precedence over a
+stale shell workspace ID after a tab move. Explicit CLI `--workspace` skips
+caller inference. A closed explicit destination causes an error rather than
+routing to another workspace.
 `create` applies only to an explicitly requested session. Mirror responses
 include session names, workspace IDs, and surface IDs.
 

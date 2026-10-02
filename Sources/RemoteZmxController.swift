@@ -48,7 +48,8 @@ final class RemoteZmxController {
     /// Performs SSH preflight before creating UI, then commits layout without awaits.
     func mirror(endpoint: RemoteZmxEndpoint, session: String?, create: Bool,
                 target: RemoteTmuxAttachWindowTarget, activate: Bool, title: String?,
-                workspaceID: UUID? = nil, callerSurfaceID: UUID? = nil) async throws -> RemoteZmxAttachOutcome {
+                workspaceID: UUID? = nil, callerSurfaceID: UUID? = nil,
+                preferCallerSurface: Bool = false) async throws -> RemoteZmxAttachOutcome {
         let host = sshHost(endpoint)
         let discovered: [RemoteZmxBinding]
         do {
@@ -66,7 +67,7 @@ final class RemoteZmxController {
         try Task.checkCancellation()
         return try mirrorDiscovered(endpoint: endpoint, discovered: discovered, session: session,
             create: create, target: target, activate: activate, title: title,
-            workspaceID: workspaceID, callerSurfaceID: callerSurfaceID)
+            workspaceID: workspaceID, callerSurfaceID: callerSurfaceID, preferCallerSurface: preferCallerSurface)
     }
 
     /// Commits a discovered mapping atomically after SSH preflight.
@@ -95,7 +96,13 @@ final class RemoteZmxController {
         let allWorkspaces = app.surfaceCatalogWorkspaces()
         // Resolve again after SSH preflight: a closed caller must never redirect the mapping.
         let destination: Workspace?
-        if let workspaceID {
+        if preferCallerSurface {
+            guard let callerSurfaceID,
+                  let owner = allWorkspaces.first(where: { $0.terminalPanel(for: callerSurfaceID) != nil }) else {
+                throw RemoteTmuxError.windowCreationFailed
+            }
+            destination = owner
+        } else if let workspaceID {
             guard let manager = app.tabManagerFor(tabId: workspaceID),
                   let workspace = manager.tabs.first(where: { $0.id == workspaceID }) else {
                 throw RemoteTmuxError.windowCreationFailed
@@ -209,6 +216,6 @@ final class RemoteZmxController {
                 return .init(session: binding.session, workspaceID: dock.workspaceId, surfaceID: panel.id)
             }
         }
-        return .mirrored(windowID: windowID, mappings: mapped.filter { workspaceID == nil || $0.workspaceID == workspaceID })
+        return .mirrored(windowID: windowID, mappings: mapped.filter { destination == nil || $0.workspaceID == destination?.id })
     }
 }

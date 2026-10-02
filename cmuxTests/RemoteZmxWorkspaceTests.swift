@@ -109,6 +109,7 @@ struct RemoteZmxWorkspaceTests {
                 session: nil, create: false, target: .contextualWindow(window), activate: false,
                 title: nil, workspaceID: source.id, callerSurfaceID: caller.id, preferCallerSurface: false)
             guard case .mirrored(_, let explicitMappings) = explicit else { Issue.record("Expected explicit mapping"); return }
+            #expect(explicitMappings.count == 1)
             #expect(explicitMappings.allSatisfy { $0.workspaceID == source.id })
         }
     }

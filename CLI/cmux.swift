@@ -12063,11 +12063,9 @@ struct CMUXCLI {
         if let workspaceRaw = params["workspace_id"] as? String {
             guard !newWindow else { throw CLIError(message: invalid) }
             params["workspace_id"] = try normalizeWorkspaceHandle(workspaceRaw, client: client)
-            if params["workspace_id"] as? String == ProcessInfo.processInfo.environment["CMUX_WORKSPACE_ID"] {
-                params["surface_id"] = ProcessInfo.processInfo.environment["CMUX_SURFACE_ID"]
-            }
         } else if !newWindow {
             try applyWindowOrCallerContext(to: &params, client: client, windowRaw: nil)
+            if params["surface_id"] != nil { params["caller_context"] = true }
         }
         let method = listOnly ? "remote.zmx.sessions" : newWindow ? "remote.zmx.window" : "remote.zmx.mirror"
         var authenticated = false

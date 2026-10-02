@@ -53,7 +53,8 @@ extension TerminalController {
             let outcome = try await controller.mirror(endpoint: endpoint, session: session, create: create,
                 target: target, activate: activate, title: title,
                 workspaceID: method == "remote.zmx.mirror" ? routing.workspaceID : nil,
-                callerSurfaceID: method == "remote.zmx.mirror" ? routing.surfaceID : nil)
+                callerSurfaceID: method == "remote.zmx.mirror" ? routing.surfaceID : nil,
+                preferCallerSurface: method == "remote.zmx.mirror" && params["caller_context"] as? Bool == true)
             switch outcome {
             case .authentication(let argv): return ["host": endpoint.destination, "auth_required": true, "ssh_argv": argv]
             case .mirrored(let windowID, let mappings):
