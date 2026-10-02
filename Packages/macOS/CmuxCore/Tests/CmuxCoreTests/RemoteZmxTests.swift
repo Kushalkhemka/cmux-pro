@@ -39,6 +39,8 @@ struct RemoteZmxTests {
         #expect(!effective.contains("controlpath /tmp/shared-master"))
         #expect(!effective.contains("remotecommand unwanted-command"))
         #expect(effective.contains("port 2222"))
+        #expect(effective.contains("serveraliveinterval 5"))
+        #expect(effective.contains("serveralivecountmax 3"))
     }
 
     @Test func attachPassesNamesLiterallyAndClearsNestedEnvironment() throws {
@@ -49,6 +51,7 @@ struct RemoteZmxTests {
         let q = RemoteZmxEndpoint.quote
         try writeExecutable("""
         #!/bin/sh
+        [ "$1" = get ] && exit 1
         if [ "$1" = list ]; then printf '%s\\n' \(q(name)); exit 0; fi
         printf '%s\\n%s\\n%s\\n' "$2" "${ZMX_SESSION-unset}" "${ZMX_SESSION_PREFIX-unset}"
         """, path: executable)
@@ -65,7 +68,7 @@ struct RemoteZmxTests {
         let dir = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: dir) }
         let executable = dir.appendingPathComponent("zmx").path
-        try writeExecutable("#!/bin/sh\n[ \"$1\" = list ] && exit 0\ntouch created\n", path: executable)
+        try writeExecutable("#!/bin/sh\n[ \"$1\" = get ] && exit 1\n[ \"$1\" = list ] && exit 0\ntouch created\n", path: executable)
         let binding = try RemoteZmxBinding(endpoint: RemoteZmxEndpoint(destination: "host", executable: executable), session: "gone")
         #expect(try run(binding.attachScript(create: false), in: dir).status == 44)
         #expect(!FileManager.default.fileExists(atPath: dir.appendingPathComponent("created").path))
@@ -81,6 +84,7 @@ struct RemoteZmxTests {
         let executable = dir.appendingPathComponent("zmx").path
         try writeExecutable("""
         #!/bin/sh
+        [ "$1" = get ] && exit 1
         if [ "$1" = list ]; then printf 'agent\\n'; exit 0; fi
         pwd
         printf '%s\\n' "$@"
@@ -118,6 +122,72 @@ struct RemoteZmxTests {
         #expect(detached.output == "attached\n")
     }
 
+    @Test func attachingHealthySessionDoesNotProbeOtherDaemons() throws {
+        let dir = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let name = "agent's α $(touch sentinel)"
+        let executable = dir.appendingPathComponent("zmx").path
+        let q = RemoteZmxEndpoint.quote
+        try writeExecutable("""
+        #!/bin/sh
+        printf '%s\\n' "$1" >> calls
+        case "$1" in
+          get) [ "$2" = \(q(name)) ] || exit 1; printf 'private labels\\n';;
+          list) exit 77;;
+          attach) printf '%s\\n' "$2";;
+        esac
+        """, path: executable)
+        let binding = try RemoteZmxBinding(endpoint: RemoteZmxEndpoint(destination: "host", executable: executable), session: name)
+        let result = try run(binding.attachScript(create: false), in: dir)
+        #expect(result.status == 0)
+        #expect(result.output == name + "\n")
+        #expect(try String(contentsOf: dir.appendingPathComponent("calls"), encoding: .utf8) == "get\nattach\n")
+        #expect(!FileManager.default.fileExists(atPath: dir.appendingPathComponent("sentinel").path))
+    }
+
+    @Test func unsupportedTargetProbeFallsBackWithoutRecreatingMissingSession() throws {
+        let dir = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let executable = dir.appendingPathComponent("zmx").path
+        try writeExecutable("""
+        #!/bin/sh
+        case "$1" in
+          get) exit 1;;
+          list) printf 'existing\\n';;
+          attach) printf 'attached\\n';;
+        esac
+        """, path: executable)
+        let endpoint = try RemoteZmxEndpoint(destination: "host", executable: executable)
+        #expect(try run(RemoteZmxBinding(endpoint: endpoint, session: "existing").attachScript(create: false), in: dir).output == "attached\n")
+        #expect(try run(RemoteZmxBinding(endpoint: endpoint, session: "missing").attachScript(create: false), in: dir).status == 44)
+    }
+
+    @Test func healthyConnectionResetsBackoffAndRetriesAreStaggered() throws {
+        let dir = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try "0\n".write(to: dir.appendingPathComponent("now"), atomically: true, encoding: .utf8)
+        try writeExecutable("#!/bin/sh\ncat now\n", path: dir.appendingPathComponent("date").path)
+        try writeExecutable("#!/bin/sh\nprintf '%s\\n' \"$1\" >> delays\n", path: dir.appendingPathComponent("sleep").path)
+        let ssh = dir.appendingPathComponent("ssh").path
+        try writeExecutable("""
+        #!/bin/sh
+        attempt=$(cat attempt 2>/dev/null || printf 0)
+        attempt=$((attempt + 1)); printf '%s\\n' "$attempt" > attempt
+        [ "$attempt" = 6 ] && printf '60\\n' > now
+        [ "$attempt" = 8 ] && exit 0
+        exit 255
+        """, path: ssh)
+        let binding = try RemoteZmxBinding(endpoint: RemoteZmxEndpoint(destination: "host"), session: "agent")
+        let result = try run(binding.startupCommand(sshArguments: [], sshExecutable: ssh,
+            reconnectMessage: "retry", missingMessage: "missing"), in: dir,
+            environment: ["PATH": dir.path + ":" + (ProcessInfo.processInfo.environment["PATH"] ?? "/usr/bin:/bin")])
+        #expect(result.status == 0)
+        let delays = try String(contentsOf: dir.appendingPathComponent("delays"), encoding: .utf8)
+            .split(separator: "\n").compactMap { Double($0) }
+        #expect(delays.map { Int($0) } == [1, 2, 4, 8, 15, 1, 2])
+        #expect(delays.allSatisfy { $0 > Double(Int($0)) && $0 < Double(Int($0)) + 1 })
+    }
+
     @Test(arguments: [false, true])
     func attachmentWorksThroughNonPOSIXLoginShell(create: Bool) throws {
         let dir = try temporaryDirectory()
@@ -125,6 +195,7 @@ struct RemoteZmxTests {
         let executable = dir.appendingPathComponent("zmx").path
         try writeExecutable("""
         #!/bin/sh
+        [ "$1" = get ] && exit 1
         if [ "$1" = list ]; then printf 'agent\\n'; exit 0; fi
         shift 2
         if [ "$#" = 0 ]; then printf 'attached\\n'; else exec "$@"; fi
